@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model auditoria_log {
+  id         BigInt    @id @default(autoincrement())
+  accion     String    @db.VarChar(10)
+  usuario_id BigInt?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  usuarios   usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model departamentos {
+  id         BigInt       @id @default(autoincrement())
+  nombre     String       @db.VarChar(60)
+  hospitales hospitales[]
+  municipios municipios[]
+}
+
+model envio {
+  id                     BigInt               @id @default(autoincrement())
+  descripcion            String?
+  transporte_id          BigInt
+  solicitud_id           BigInt?
+  fecha_recoleccion      DateTime?            @db.Date
+  fecha_entrega_estimada DateTime?            @db.Date
+  estado_envio_id        BigInt
+  created_at             DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?            @default(now()) @db.Timestamp(6)
+  encargado_logistica_id BigInt?
+  pin                    String?              @db.VarChar(4)
+  donaciones             donaciones[]
+  estado_envio           estado_envio         @relation(fields: [estado_envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  solicitudes            solicitudes?         @relation(fields: [solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transporte             transporte           @relation(fields: [transporte_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  encargado_logistica    encargado_logistica? @relation(fields: [encargado_logistica_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_encargado_logistica")
+  pagos                  pagos[]
+}
+
+model estado_base {
+  id          BigInt       @id @default(autoincrement())
+  nombre      String       @unique @db.VarChar(50)
+  descripcion String?
+  hospitales  hospitales[]
+  usuarios    usuarios[]
+}
+
+model estado_envio {
+  id          BigInt        @id @default(autoincrement())
+  guia        String        @unique @db.VarChar(60)
+  descripcion String?
+  estado      String?       @db.VarChar(20)
+  envio       envio[]
+}
+
+model estado_publicacion {
+  id            BigInt          @id @default(autoincrement())
+  nombre        String          @unique @db.VarChar(10)
+  descripcion   String?
+  publicaciones publicaciones[]
+}
+
+model hospitales {
+  id                  BigInt          @id @default(autoincrement())
+  rut                 String          @unique @db.VarChar(30)
+  nombre              String          @db.VarChar(50)
+  direccion           String          @db.VarChar(50)
+  departamento_id     BigInt?
+  municipio_id        BigInt?
+  telefono            String?         @db.VarChar(10)
+  celular             String?         @db.VarChar(10)
+  correo              String?         @db.VarChar(50)
+  estado_id           BigInt?
+  director            String?         @db.VarChar(50)
+  created_at          DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?       @default(now()) @db.Timestamp(6)
+  donaciones_destino  donaciones[]    @relation("donaciones_hospital_destino")
+  donaciones_origen   donaciones[]    @relation("donaciones_hospital_origen")
+  estado_base         estado_base?    @relation(fields: [estado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_hospitales_estado")
+  departamentos       departamentos?  @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  municipios          municipios?     @relation(fields: [municipio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publicaciones       publicaciones[]
+  solicitudes_destino solicitudes[]   @relation("solicitudes_hospital_destino")
+  solicitudes_origen  solicitudes[]   @relation("solicitudes_hospital_origen")
+  usuarios            usuarios[]
+  encargado_logistica encargado_logistica[]
+  notificaciones      notificaciones[]
+}
+
+model medicamentos {
+  id                    BigInt              @id @default(autoincrement())
+  nombre                String              @db.VarChar(50)
+  referencia            String              @unique @db.VarChar(60)
+  tipo_medicamento_id   BigInt?
+  concentracion         Int
+  medida_medicamento_id BigInt?
+  descripcion           String?
+  created_at            DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at            DateTime?           @default(now()) @db.Timestamp(6)
+  donaciones            donaciones[]
+  medida_medicamento    medida_medicamento? @relation(fields: [medida_medicamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "medicamentos_medida_id_fkey")
+  tipo_medicamento      tipo_medicamento?   @relation(fields: [tipo_medicamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publicaciones         publicaciones[]
+  solicitudes           solicitudes[]
+}
+
+model medida_medicamento {
+  id           BigInt         @id @default(autoincrement())
+  nombre       String         @unique @db.VarChar(10)
+  descripcion  String?
+  medicamentos medicamentos[]
+}
+
+model municipios {
+  id              BigInt        @id @default(autoincrement())
+  nombre          String        @db.VarChar(30)
+  departamento_id BigInt
+  estado          Int
+  hospitales      hospitales[]
+  departamentos   departamentos @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model medios_pago {
+  id          BigInt    @id @default(autoincrement())
+  nombre      String    @unique @db.VarChar(50)
+  descripcion String?
+  activo      Boolean   @default(true)
+  icono       String?   @db.VarChar(100)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  pagos       pagos[]
+}
+
+model pagos {
+  id              BigInt       @id @default(autoincrement())
+  monto           Decimal      @db.Decimal(10, 2)
+  estado          String       @db.VarChar(20)
+  transaccion     String?      @unique @db.VarChar(100)
+  envio_id        BigInt?
+  created_at      DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?    @default(now()) @db.Timestamp(6)
+  solicitud_id    BigInt?
+  nombre_completo String       @db.VarChar(255)
+  correo          String       @db.VarChar(150)
+  cedula          String       @db.VarChar(20)
+  medio_pago_id   BigInt?
+  observaciones   String?
+  telefono        String?      @db.VarChar(20)
+  envio           envio?       @relation(fields: [envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  medio_pago      medios_pago? @relation(fields: [medio_pago_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  solicitudes     solicitudes? @relation(fields: [solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model publicaciones {
+  id                     BigInt               @id @default(autoincrement())
+  hospital_id            BigInt?
+  medicamento_id         BigInt?
+  descripcion            String?
+  imagen                 String?
+  tipo_publicacion_id    BigInt?
+  cantidad               Int
+  fecha_expiracion       DateTime             @db.Date
+  estado_publicacion_id  BigInt?
+  created_at             DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?            @default(now()) @db.Timestamp(6)
+  unidad_dispensacion_id BigInt?
+  reg_invima             String               @db.VarChar(50)
+  unidad_dispensacion    unidad_dispensacion? @relation(fields: [unidad_dispensacion_id], references: [id], onUpdate: NoAction, map: "fk_publicaciones_unidad_dispensacion")
+  estado_publicacion     estado_publicacion?  @relation(fields: [estado_publicacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hospitales             hospitales?          @relation(fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  medicamentos           medicamentos?        @relation(fields: [medicamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tipo_publicacion       tipo_publicacion?    @relation(fields: [tipo_publicacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  solicitudes            solicitudes[]
+}
+
+model roles {
+  id       BigInt     @id @default(autoincrement())
+  nombre   String     @unique @db.VarChar(20)
+  usuarios usuarios[]
+}
+
+model solicitudes {
+  id                 BigInt         @id @default(autoincrement())
+  descripcion        String?
+  publicacion_id     BigInt?
+  hospital_id        BigInt?
+  medicamento_id     BigInt?
+  created_at         DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at         DateTime?      @default(now()) @db.Timestamp(6)
+  hospital_origen_id BigInt?
+  envio              envio[]
+  pagos              pagos[]
+  hospitales         hospitales?    @relation("solicitudes_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hospital_origen    hospitales?    @relation("solicitudes_hospital_origen", fields: [hospital_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  medicamentos       medicamentos?  @relation(fields: [medicamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publicaciones      publicaciones? @relation(fields: [publicacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model tipo_medicamento {
+  id           BigInt         @id @default(autoincrement())
+  nombre       String         @unique @db.VarChar(10)
+  descripcion  String?
+  medicamentos medicamentos[]
+}
+
+model tipo_publicacion {
+  id            BigInt          @id @default(autoincrement())
+  nombre        String          @unique @db.VarChar(10)
+  descripcion   String?
+  publicaciones publicaciones[]
+}
+
+model transporte {
+  id          BigInt  @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(20)
+  descripcion String?
+  envio       envio[]
+}
+
+model usuarios {
+  id                         BigInt                      @id @default(autoincrement())
+  nombres                    String                      @db.VarChar(50)
+  apellidos                  String                      @db.VarChar(50)
+  sexo                       String?                     @db.VarChar(10)
+  cedula                     String                      @unique @db.VarChar(20)
+  correo_corporativo         String                      @unique @db.VarChar(50)
+  celular                    String?                     @db.VarChar(20)
+  numero_tarjeta_profesional String?                     @db.VarChar(20)
+  rol_id                     BigInt?
+  hospital_id                BigInt?
+  estado_base_id             BigInt?
+  contrasena                 String
+  created_at                 DateTime?                   @default(now()) @db.Timestamp(6)
+  updated_at                 DateTime?                   @default(now()) @db.Timestamp(6)
+  fecha_nacimiento           DateTime?                   @db.Date
+  auditoria_log              auditoria_log[]
+  avisos                     avisos[]                    @relation("avisos_usuario")
+  eventos_calendario         eventos_calendario[]
+  preferencias_accesibilidad preferencias_accesibilidad? @relation("preferencias_accesibilidad_usuario")
+  estado_base                estado_base?                @relation(fields: [estado_base_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hospitales                 hospitales?                 @relation(fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles                      roles?                      @relation(fields: [rol_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model encargado_logistica {
+  id          BigInt    @id @default(autoincrement())
+  nombre      String    @db.VarChar(50)
+  apellido    String    @db.VarChar(50)
+  cedula      Int
+  correo      String?   @db.VarChar(50)
+  celular     String    @db.VarChar(10)
+  hospital_id BigInt?
+  created_at  DateTime? @db.Timestamp(6)
+  updated_at  DateTime? @db.Timestamp(6)
+  envio       envio[]
+  hospitales  hospitales? @relation(fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model donaciones {
+  id                     BigInt               @id @default(autoincrement())
+  descripcion            String?
+  hospital_id            BigInt
+  medicamento_id         BigInt
+  cantidad               Int
+  envio_id               BigInt?
+  created_at             DateTime             @default(now()) @db.Timestamp(6)
+  updated_at             DateTime             @updatedAt @db.Timestamp(6)
+  imagen                 String?
+  unidad_dispensacion_id BigInt?
+  hospital_origen_id     BigInt?
+  envio                  envio?               @relation(fields: [envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donaciones_envio_fk")
+  hospitales             hospitales           @relation("donaciones_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donaciones_hospital_fk")
+  hospital_origen        hospitales?          @relation("donaciones_hospital_origen", fields: [hospital_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  medicamentos           medicamentos         @relation(fields: [medicamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donaciones_medicamento_fk")
+  unidad_dispensacion    unidad_dispensacion? @relation(fields: [unidad_dispensacion_id], references: [id], onUpdate: NoAction, map: "fk_donaciones_unidad_dispensacion")
+}
+
+model unidad_dispensacion {
+  id            BigInt          @id(map: "unidades_dispensacion_pkey") @default(autoincrement())
+  nombre        String?         @db.VarChar(30)
+  donaciones    donaciones[]
+  publicaciones publicaciones[]
+}
+
+model eventos_calendario {
+  id           BigInt    @id @default(autoincrement())
+  titulo       String    @db.VarChar(255)
+  color        String    @db.VarChar(20)
+  fecha_inicio DateTime  @db.Date
+  fecha_fin    DateTime  @db.Date
+  usuario_id   BigInt
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+  usuarios     usuarios  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model avisos {
+  id          BigInt    @id @default(autoincrement())
+  titulo      String    @db.VarChar(255)
+  descripcion String
+  fecha       DateTime  @db.Date
+  publicado   Boolean   @default(false)
+  usuario_id  BigInt
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  usuarios    usuarios  @relation("avisos_usuario", fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model preferencias_accesibilidad {
+  id                    BigInt    @id @default(autoincrement())
+  usuario_id            BigInt    @unique
+  contraste_desactivado Boolean   @default(false)
+  contraste_brillante   Boolean   @default(false)
+  contraste_invertido   Boolean   @default(false)
+  tamano_texto          Int       @default(100)
+  zoom_pantalla         Int       @default(100)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  usuarios              usuarios  @relation("preferencias_accesibilidad_usuario", fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model notificaciones {
+  id              BigInt      @id @default(autoincrement())
+  titulo          String      @db.VarChar(100)
+  mensaje         String
+  tipo            String      @db.VarChar(50)
+  hospital_id     BigInt
+  leida           Boolean     @default(false)
+  referencia_id   BigInt?
+  referencia_tipo String?     @db.VarChar(50)
+  created_at      DateTime    @default(now()) @db.Timestamp(6)
+  hospitales      hospitales  @relation(fields: [hospital_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

@@ -1,0 +1,504 @@
+"use client";
+import Checkbox from "@/components/form/input/Checkbox";
+import Label from "@/components/form/Label";
+import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+interface Hospital {
+  id: string;
+  nombre: string;
+  rut: string;
+  municipio?: string;
+}
+
+export default function SignUpForm() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [hospitales, setHospitales] = useState<Hospital[]>([]);
+  const [searchHospital, setSearchHospital] = useState("");
+  const [showHospitalDropdown, setShowHospitalDropdown] = useState(false);
+  const [selectedHospitalName, setSelectedHospitalName] = useState("");
+
+  const [formData, setFormData] = useState({
+    nombres: "",
+    apellidos: "",
+    fecha_nacimiento: "",
+    sexo: "",
+    cedula: "",
+    correo_corporativo: "",
+    celular: "",
+    numero_tarjeta_profesional: "",
+    hospital_id: "",
+    contrasena: "",
+    confirmar_contrasena: "",
+  });
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        // Cargar solo hospitales disponibles (sin usuarios asignados)
+        const hospitalesRes = await fetch("/api/hospitales/disponibles");
+
+        if (hospitalesRes.ok) {
+          const hospitalesData = await hospitalesRes.json();
+          // La API devuelve un array filtrado
+          setHospitales(hospitalesData || []);
+        } else {
+          toast.error("Error al cargar hospitales", {
+            description: "No se pudieron cargar los hospitales disponibles."
+          });
+        }
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+        toast.error("Error de conexión", {
+          description: "No se pudo conectar con el servidor."
+        });
+      }
+    };
+
+    cargarDatos();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSearchHospital = (value: string) => {
+    setSearchHospital(value);
+    setShowHospitalDropdown(true);
+    if (!value) {
+      setFormData((prev) => ({ ...prev, hospital_id: "" }));
+      setSelectedHospitalName("");
+    }
+  };
+
+  const handleSelectHospital = (hospital: Hospital) => {
+    setFormData((prev) => ({ ...prev, hospital_id: hospital.id }));
+    setSelectedHospitalName(hospital.nombre);
+    setSearchHospital("");
+    setShowHospitalDropdown(false);
+  };
+
+  const filteredHospitales = hospitales.filter((hospital) =>
+    hospital.nombre.toLowerCase().includes(searchHospital.toLowerCase()) ||
+    (hospital.municipio && hospital.municipio.toLowerCase().includes(searchHospital.toLowerCase()))
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!isChecked) {
+      setError("Debes aceptar los términos y condiciones");
+      toast.warning("¡Atención!", {
+        description: "Debes aceptar los términos y condiciones para continuar."
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const loadingToast = toast.loading("Registrando usuario...");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          hospital_id: formData.hospital_id ? parseInt(formData.hospital_id) : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.detalles) {
+          const errores = data.detalles.map((d: any) => d.mensaje).join(", ");
+          setError(errores);
+          toast.error("Error de validación", {
+            description: errores,
+            id: loadingToast
+          });
+        } else {
+          setError(data.error || "Error al registrar usuario");
+          toast.error("¡Error al registrar!", {
+            description: data.error || "No se pudo completar el registro.",
+            id: loadingToast
+          });
+        }
+        return;
+      }
+
+      setSuccess("Usuario registrado exitosamente. Redirigiendo...");
+      toast.success("¡Registro exitoso!", {
+        description: "Tu cuenta ha sido creada. Redirigiendo al inicio de sesión...",
+        id: loadingToast
+      });
+
+      setTimeout(() => {
+        window.location.href = "/sesion";
+      }, 2000);
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Error al conectar con el servidor");
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor. Intenta de nuevo.",
+        id: loadingToast
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const inputClasses = "h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800";
+  const selectClasses = "h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 pr-11 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800";
+
+  return (
+    <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
+
+      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto pb-8">
+        <div>
+          <div className="mt-6 mb-5 sm:mt-10 sm:mb-8">
+            <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+              Registrarse
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Completa el formulario para crear la cuenta en el sistema.
+            </p>
+          </div>
+          <div>
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800">
+                <p className="text-sm text-error-600 dark:text-error-400">{error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-4 p-3 rounded-lg bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800">
+                <p className="text-sm text-success-600 dark:text-success-400">{success}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <Label>
+                      Nombres <span className="text-error-500">*</span>
+                    </Label>
+                    <input
+                      type="text"
+                      name="nombres"
+                      value={formData.nombres}
+                      onChange={handleChange}
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <Label>
+                      Apellidos <span className="text-error-500">*</span>
+                    </Label>
+                    <input
+                      type="text"
+                      name="apellidos"
+                      value={formData.apellidos}
+                      onChange={handleChange}
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <Label>
+                      Cédula <span className="text-error-500">*</span>
+                    </Label>
+                    <input
+                      type="text"
+                      name="cedula"
+                      value={formData.cedula}
+                      onChange={handleChange}
+                      placeholder="1234567890"
+                      required
+                      minLength={10}
+                      maxLength={12}
+                      pattern="[0-9]*"
+                      onInput={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/[^0-9]/g, '');
+                      }}
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fecha de Nacimiento</Label>
+                    <input
+                      type="date"
+                      name="fecha_nacimiento"
+                      value={formData.fecha_nacimiento}
+                      onChange={handleChange}
+                      max={new Date().toISOString().split('T')[0]}
+                      className={inputClasses}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Sexo</Label>
+                  <select
+                    name="sexo"
+                    value={formData.sexo}
+                    onChange={handleChange}
+                    className={selectClasses}
+                  >
+                    <option value="">Seleccione...</option>
+                    <option value="Hombre">Hombre</option>
+                    <option value="Mujer">Mujer</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>
+                    Correo Corporativo <span className="text-error-500">*</span>
+                  </Label>
+                  <input
+                    type="email"
+                    name="correo_corporativo"
+                    value={formData.correo_corporativo}
+                    onChange={handleChange}
+                    placeholder="ejemplo@hospital.com"
+                    required
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <Label>Celular</Label>
+                  <input
+                    type="tel"
+                    name="celular"
+                    value={formData.celular}
+                    onChange={handleChange}
+                    placeholder="3001234567"
+                    maxLength={10}
+                    pattern="[0-9]*"
+                    onInput={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/[^0-9]/g, '');
+                    }}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <Label>Número de Tarjeta Profesional</Label>
+                  <input
+                    type="text"
+                    name="numero_tarjeta_profesional"
+                    value={formData.numero_tarjeta_profesional}
+                    onChange={handleChange}
+                    placeholder="TP-12345"
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div className="relative">
+                  <Label>Hospital</Label>
+                  <div className="relative">
+                    {selectedHospitalName ? (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={selectedHospitalName}
+                          readOnly
+                          className={`${inputClasses} pr-10 cursor-pointer`}
+                          onClick={() => {
+                            setSelectedHospitalName("");
+                            setFormData((prev) => ({ ...prev, hospital_id: "" }));
+                            setShowHospitalDropdown(true);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedHospitalName("");
+                            setFormData((prev) => ({ ...prev, hospital_id: "" }));
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={searchHospital}
+                        onChange={(e) => handleSearchHospital(e.target.value)}
+                        onFocus={() => setShowHospitalDropdown(true)}
+                        placeholder="Buscar"
+                        className={inputClasses}
+                      />
+                    )}
+                    {showHospitalDropdown && !selectedHospitalName && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto dark:bg-gray-900 dark:border-gray-700">
+                        {filteredHospitales.length > 0 ? (
+                          filteredHospitales.map((hospital) => (
+                            <div
+                              key={hospital.id}
+                              onClick={() => handleSelectHospital(hospital)}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                            >
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {hospital.nombre}
+                              </p>
+                              {hospital.municipio && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {hospital.municipio}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            No se encontraron hospitales
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {showHospitalDropdown && !selectedHospitalName && (
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowHospitalDropdown(false)}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label>
+                    Contraseña <span className="text-error-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="contrasena"
+                      value={formData.contrasena}
+                      onChange={handleChange}
+                      placeholder="Mínimo 8 caracteres"
+                      required
+                      className={inputClasses}
+                    />
+                    <span
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                    >
+                      {showPassword ? (
+                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
+                      ) : (
+                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>
+                    Confirmar Contraseña <span className="text-error-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmar_contrasena"
+                      value={formData.confirmar_contrasena}
+                      onChange={handleChange}
+                      placeholder="Repite tu contraseña"
+                      required
+                      className={inputClasses}
+                    />
+                    <span
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
+                      ) : (
+                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    className="w-5 h-5 mt-0.5"
+                    checked={isChecked}
+                    onChange={setIsChecked}
+                  />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Al crear una cuenta, aceptas los{" "}
+                    <Link
+                      href="/terminos-condiciones"
+                      target="_blank"
+                      className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
+                    >
+                      Términos y Condiciones
+                    </Link>{" "}
+                    y nuestra{" "}
+                    <Link
+                      href="/politicas-privacidad"
+                      target="_blank"
+                      className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
+                    >
+                      Política de Privacidad
+                    </Link>
+                  </p>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Registrando..." : "Registrarse"}
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <div className="mt-5">
+              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
+                ¿Ya tiene una cuenta?{" "}
+                <Link
+                  href="/sesion"
+                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                >
+                  Iniciar sesión
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
