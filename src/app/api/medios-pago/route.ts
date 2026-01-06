@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      mediosPago: mediosPago.map(m => ({
+      mediosPago: mediosPago.map((m: any) => ({
         id: Number(m.id),
         nombre: m.nombre,
         descripcion: m.descripcion,

@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Convertir BigInt a Number
-    const solicitudesSerializables = solicitudes.map((solicitud) => ({
+    const solicitudesSerializables = solicitudes.map((solicitud: any) => ({
       id: Number(solicitud.id),
       publicacion_id: solicitud.publicacion_id ? Number(solicitud.publicacion_id) : null,
       hospital_id: solicitud.hospital_id ? Number(solicitud.hospital_id) : null,

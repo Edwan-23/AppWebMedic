@@ -85,16 +85,16 @@ export async function GET(request: NextRequest) {
         totalMedicamentos,
         publicacionesDisponibles
       },
-      publicacionesPorMes: publicacionesPorMes.map(item => ({
+      publicacionesPorMes: publicacionesPorMes.map((item: any) => ({
         mes: item.mes,
         total: Number(item.total)
       })),
       comparacion: {
-        enviosEntregados: enviosEntregadosPorMes.map(item => ({
+        enviosEntregados: enviosEntregadosPorMes.map((item: any) => ({
           mes: item.mes,
           total: Number(item.total)
         })),
-        enviosRecibidos: enviosRecibidosPorMes.map(item => ({
+        enviosRecibidos: enviosRecibidosPorMes.map((item: any) => ({
           mes: item.mes,
           total: Number(item.total)
         }))

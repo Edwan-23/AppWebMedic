@@ -35,7 +35,7 @@ export async function GET() {
 
     // Crear un Set con los IDs de hospitales que ya tienen usuarios
     const hospitalesOcupados = new Set(
-      hospitalesConUsuarios.map((u) => u.hospital_id?.toString())
+      hospitalesConUsuarios.map((u: any) => u.hospital_id?.toString())
     );
 
     // Filtrar hospitales disponibles (sin usuarios asignados)
@@ -44,7 +44,7 @@ export async function GET() {
     );
 
     // Formatear respuesta
-    const hospitalesFormateados = hospitalesDisponibles.map((hospital) => ({
+    const hospitalesFormateados = hospitalesDisponibles.map((hospital: any) => ({
       id: hospital.id.toString(),
       nombre: hospital.nombre,
       rut: hospital.rut,

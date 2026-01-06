@@ -13,7 +13,7 @@ export async function GET() {
       },
     });
 
-    const tiposFormateados = tipos.map((tipo) => ({
+    const tiposFormateados = tipos.map((tipo: any) => ({
       id: tipo.id.toString(),
       nombre: tipo.nombre,
     }));

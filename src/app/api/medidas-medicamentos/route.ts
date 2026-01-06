@@ -13,7 +13,7 @@ export async function GET() {
       },
     });
 
-    const medidasFormateadas = medidas.map((medida) => ({
+    const medidasFormateadas = medidas.map((medida: any) => ({
       id: medida.id.toString(),
       nombre: medida.nombre,
     }));

@@ -10,7 +10,7 @@ export async function GET() {
     });
 
     // Serializar BigInt a Number
-    const unidadesSerializables = unidades.map(unidad => ({
+    const unidadesSerializables = unidades.map((unidad: any) => ({
       id: Number(unidad.id),
       nombre: unidad.nombre
     }));

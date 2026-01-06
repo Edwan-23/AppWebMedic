@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: { id: "asc" }
     });
 
-    const estadosSerializables = estados.map((estado) => ({
+    const estadosSerializables = estados.map((estado: any) => ({
       ...estado,
       id: Number(estado.id)
     }));

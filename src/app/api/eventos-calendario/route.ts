@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Serializar BigInt a Number
-    const eventosSerializados = eventos.map((evento) => ({
+    const eventosSerializados = eventos.map((evento: any) => ({
       id: Number(evento.id),
       titulo: evento.titulo,
       color: evento.color,

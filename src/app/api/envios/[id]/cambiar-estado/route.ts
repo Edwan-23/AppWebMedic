@@ -56,7 +56,7 @@ export async function POST(
     console.log("Buscando estado:", nuevoEstadoNombre);
     
     const todosLosEstados = await prisma.estado_envio.findMany();
-    console.log("Estados disponibles:", todosLosEstados.map(e => e.estado));
+    console.log("Estados disponibles:", todosLosEstados.map((e: any) => e.estado));
     
     const nuevoEstado = todosLosEstados.find(
       e => e.estado?.toLowerCase().trim() === nuevoEstadoNombre.toLowerCase().trim()
@@ -67,7 +67,7 @@ export async function POST(
         { 
           error: "Estado no válido", 
           estadoBuscado: nuevoEstadoNombre,
-          estadosDisponibles: todosLosEstados.map(e => e.estado)
+          estadosDisponibles: todosLosEstados.map((e: any) => e.estado)
         },
         { status: 400 }
       );

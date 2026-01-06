@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      notificaciones: notificaciones.map((n) => ({
+      notificaciones: notificaciones.map((n: any) => ({
         id: Number(n.id),
         titulo: n.titulo,
         mensaje: n.mensaje,
@@ -101,7 +101,7 @@ async function limpiarNotificacionesAntiguas(hospitalId: bigint) {
     if (todasNotificaciones.length > 20) {
       const idsAEliminar = todasNotificaciones
         .slice(20)
-        .map(n => n.id);
+        .map((n: any) => n.id);
 
       await prisma.notificaciones.deleteMany({
         where: {

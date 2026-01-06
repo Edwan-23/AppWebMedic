@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Crear notificación para cada hospital
-      const notificaciones = otrosHospitales.map(h => ({
+      const notificaciones = otrosHospitales.map((h: any) => ({
         titulo: `Nueva publicación: ${medicamento}`,
         mensaje: `${hospital} ha publicado ${tipo.toLowerCase()}: ${medicamento} (${body.cantidad} unidades disponibles)`,
         tipo: "publicacion",
