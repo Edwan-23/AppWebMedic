@@ -42,7 +42,7 @@ export async function GET() {
       take: 3, // Máximo 3 avisos
     });
 
-    const avisosFormateados = avisos.map((aviso) => ({
+    const avisosFormateados = avisos.map((aviso: any) => ({
       id: aviso.id.toString(),
       titulo: aviso.titulo,
       descripcion: aviso.descripcion,
