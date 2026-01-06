@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      transportes: transportes.map((t) => ({
+      transportes: transportes.map((t: any) => ({
         id: Number(t.id),
         nombre: t.nombre,
         descripcion: t.descripcion
