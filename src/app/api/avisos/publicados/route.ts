@@ -39,7 +39,7 @@ export async function GET() {
       },
     });
 
-    const avisosFormateados = avisos.map((aviso) => ({
+    const avisosFormateados = avisos.map((aviso: any) => ({
       id: aviso.id.toString(),
       titulo: aviso.titulo,
       descripcion: aviso.descripcion,
