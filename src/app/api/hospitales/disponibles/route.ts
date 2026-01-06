@@ -40,7 +40,7 @@ export async function GET() {
 
     // Filtrar hospitales disponibles (sin usuarios asignados)
     const hospitalesDisponibles = todosLosHospitales.filter(
-      (hospital) => !hospitalesOcupados.has(hospital.id.toString())
+      (hospital: any) => !hospitalesOcupados.has(hospital.id.toString())
     );
 
     // Formatear respuesta
