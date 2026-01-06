@@ -59,7 +59,7 @@ export async function POST(
     console.log("Estados disponibles:", todosLosEstados.map((e: any) => e.estado));
     
     const nuevoEstado = todosLosEstados.find(
-      e => e.estado?.toLowerCase().trim() === nuevoEstadoNombre.toLowerCase().trim()
+      (e: any) => e.estado?.toLowerCase().trim() === nuevoEstadoNombre.toLowerCase().trim()
     );
 
     if (!nuevoEstado) {
