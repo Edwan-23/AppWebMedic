@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear solicitud + pago + envío + actualizar publicación en una transacción
-    const resultado = await prisma.$transaction(async (tx) => {
+    const resultado = await prisma.$transaction(async (tx: any) => {
       // 1. Crear la solicitud
       const nuevaSolicitud = await tx.solicitudes.create({
         data: {
