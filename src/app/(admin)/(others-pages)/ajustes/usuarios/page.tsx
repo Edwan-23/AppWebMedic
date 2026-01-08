@@ -59,6 +59,10 @@ export default function UsuariosPage() {
     correo_corporativo: "",
     celular: "",
   });
+  const [erroresValidacion, setErroresValidacion] = useState({
+    correo_corporativo: "",
+    celular: "",
+  });
   
   // Estados para paginación
   const [paginaActual, setPaginaActual] = useState(1);
@@ -137,6 +141,37 @@ export default function UsuariosPage() {
 
   const handleActualizar = async () => {
     if (!usuarioSeleccionado) return;
+
+    // Validaciones
+    const errores = {
+      correo_corporativo: "",
+      celular: "",
+    };
+
+    // Validar correo
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.correo_corporativo || !emailRegex.test(formData.correo_corporativo)) {
+      errores.correo_corporativo = "El correo debe tener un formato válido (ejemplo@dominio.com)";
+    }
+
+    // Validar celular
+    if (formData.celular) {
+      if (!/^\d+$/.test(formData.celular)) {
+        errores.celular = "El celular solo debe contener números";
+      } else if (formData.celular.length !== 10) {
+        errores.celular = "El celular debe tener 10 dígitos";
+      }
+    }
+
+    // Si hay errores, mostrarlos y no continuar
+    if (errores.correo_corporativo || errores.celular) {
+      setErroresValidacion(errores);
+      toast.error("Por favor corrija los errores en el formulario");
+      return;
+    }
+
+    // Limpiar errores
+    setErroresValidacion({ correo_corporativo: "", celular: "" });
 
     try {
       const response = await fetch(`/api/usuarios/${usuarioSeleccionado.id}`, {
@@ -509,18 +544,47 @@ export default function UsuariosPage() {
                   id="correo"
                   type="email"
                   defaultValue={formData.correo_corporativo}
-                  onChange={(e) => setFormData({ ...formData, correo_corporativo: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, correo_corporativo: e.target.value });
+                    if (erroresValidacion.correo_corporativo) {
+                      setErroresValidacion({ ...erroresValidacion, correo_corporativo: "" });
+                    }
+                  }}
                 />
+                {erroresValidacion.correo_corporativo && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {erroresValidacion.correo_corporativo}
+                  </p>
+                )}
               </div>
               
               <div>
                 <Label htmlFor="celular">Celular</Label>
-                <Input
+                <input
                   id="celular"
-                  type="text"
-                  defaultValue={formData.celular}
-                  onChange={(e) => setFormData({ ...formData, celular: e.target.value })}
+                  type="tel"
+                  maxLength={10}
+                  pattern="[0-9]*"
+                  value={formData.celular}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, celular: value });
+                    if (erroresValidacion.celular) {
+                      setErroresValidacion({ ...erroresValidacion, celular: "" });
+                    }
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.value = target.value.replace(/[^0-9]/g, '');
+                  }}
+                  placeholder="3001234567"
+                  className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 bg-white text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                 />
+                {erroresValidacion.celular && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {erroresValidacion.celular}
+                  </p>
+                )}
               </div>
             </div>
             

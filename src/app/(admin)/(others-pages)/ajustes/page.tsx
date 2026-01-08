@@ -105,10 +105,10 @@ export default function AjustesPage() {
                         </svg>
                         <div>
                             <h5 className="font-medium text-yellow-800 dark:text-yellow-300">
-                                Acceso Restringido
+                                Restringido
                             </h5>
                             <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
-                                Cualquier cambio realizado en los modulos afectará a todo el sistema.
+                                Los cambios realizados en los módulos afectarán los datos del sistema.
                             </p>
                         </div>
                     </div>

@@ -61,6 +61,12 @@ export default function HospitalesPage() {
     correo: "",
     director: "",
   });
+
+  const [erroresValidacion, setErroresValidacion] = useState({
+    telefono: "",
+    celular: "",
+    correo: "",
+  });
   
   // Estados para paginación
   const [paginaActual, setPaginaActual] = useState(1);
@@ -148,6 +154,47 @@ export default function HospitalesPage() {
 
   const handleActualizar = async () => {
     if (!hospitalSeleccionado) return;
+
+    // Validaciones
+    const errores = {
+      telefono: "",
+      celular: "",
+      correo: "",
+    };
+
+    // Validar teléfono
+    if (formData.telefono) {
+      if (!/^\d+$/.test(formData.telefono)) {
+        errores.telefono = "El teléfono solo debe contener números";
+      } else if (formData.telefono.length !== 10) {
+        errores.telefono = "El teléfono debe tener 10 dígitos (60 + prefijo + número)";
+      }
+    }
+
+    // Validar celular
+    if (formData.celular) {
+      if (!/^\d+$/.test(formData.celular)) {
+        errores.celular = "El celular solo debe contener números";
+      } else if (formData.celular.length !== 10) {
+        errores.celular = "El celular debe tener 10 dígitos";
+      }
+    }
+
+    // Validar correo
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.correo && !emailRegex.test(formData.correo)) {
+      errores.correo = "El correo debe tener un formato válido (ejemplo@dominio.com)";
+    }
+
+    // Si hay errores, mostrarlos y no continuar
+    if (errores.telefono || errores.celular || errores.correo) {
+      setErroresValidacion(errores);
+      toast.error("Por favor corrija los errores en el formulario");
+      return;
+    }
+
+    // Limpiar errores
+    setErroresValidacion({ telefono: "", celular: "", correo: "" });
 
     try {
       const response = await fetch(`/api/hospitales/${hospitalSeleccionado.id}`, {
@@ -627,26 +674,58 @@ export default function HospitalesPage() {
                 Teléfono
               </label>
               <input
-                type="text"
+                type="tel"
+                maxLength={10}
+                pattern="[0-9]*"
                 value={formData.telefono}
-                onChange={(e) =>
-                  setFormData({ ...formData, telefono: e.target.value })
-                }
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, telefono: value });
+                  if (erroresValidacion.telefono) {
+                    setErroresValidacion({ ...erroresValidacion, telefono: "" });
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.value = target.value.replace(/[^0-9]/g, '');
+                }}
+                placeholder="6012345678"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
+              {erroresValidacion.telefono && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {erroresValidacion.telefono}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Celular
               </label>
               <input
-                type="text"
+                type="tel"
+                maxLength={10}
+                pattern="[0-9]*"
                 value={formData.celular}
-                onChange={(e) =>
-                  setFormData({ ...formData, celular: e.target.value })
-                }
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, celular: value });
+                  if (erroresValidacion.celular) {
+                    setErroresValidacion({ ...erroresValidacion, celular: "" });
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.value = target.value.replace(/[^0-9]/g, '');
+                }}
+                placeholder="3001234567"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
+              {erroresValidacion.celular && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {erroresValidacion.celular}
+                </p>
+              )}
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -654,12 +733,22 @@ export default function HospitalesPage() {
               </label>
               <input
                 type="email"
+                required
                 value={formData.correo}
-                onChange={(e) =>
-                  setFormData({ ...formData, correo: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, correo: e.target.value });
+                  if (erroresValidacion.correo) {
+                    setErroresValidacion({ ...erroresValidacion, correo: "" });
+                  }
+                }}
+                placeholder="contacto@hospital.com"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
+              {erroresValidacion.correo && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {erroresValidacion.correo}
+                </p>
+              )}
             </div>
           </div>
 
