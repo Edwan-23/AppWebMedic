@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Label from "@/components/form/Label";
 import { Modal } from "@/components/ui/modal";
 import ImageUpload from "@/components/form/ImageUpload";
+import DatePicker from "@/components/form/date-picker";
 
 interface Medicamento {
   id: number;
@@ -882,14 +883,19 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               </div>
 
               <div>
-                <Label>Fecha de Expiración *</Label>
-                <input
-                  type="date"
-                  name="fecha_expiracion"
-                  value={formData.fecha_expiracion}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                <DatePicker
+                  id="fecha_expiracion_crear"
+                  label="Fecha de Expiración *"
+                  placeholder="Seleccione una fecha"
+                  defaultDate={formData.fecha_expiracion || undefined}
+                  minDate={new Date()}
+                  onChange={(selectedDates) => {
+                    if (selectedDates && selectedDates.length > 0) {
+                      const fecha = selectedDates[0];
+                      const fechaFormateada = fecha.toISOString().split('T')[0];
+                      setFormData(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
+                    }
+                  }}
                 />
               </div>
 
@@ -1414,14 +1420,19 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 </div>
 
                 <div className="col-span-2">
-                  <Label>Fecha de Expiración *</Label>
-                  <input
-                    type="date"
-                    name="fecha_expiracion"
-                    value={formDataEditar.fecha_expiracion}
-                    onChange={handleChangeEditar}
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  <DatePicker
+                    id="fecha_expiracion_editar"
+                    label="Fecha de Expiración *"
+                    placeholder="Seleccione una fecha"
+                    defaultDate={formDataEditar.fecha_expiracion || undefined}
+                    minDate={new Date()}
+                    onChange={(selectedDates) => {
+                      if (selectedDates && selectedDates.length > 0) {
+                        const fecha = selectedDates[0];
+                        const fechaFormateada = fecha.toISOString().split('T')[0];
+                        setFormDataEditar(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
+                      }
+                    }}
                   />
                 </div>
 

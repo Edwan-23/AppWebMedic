@@ -30,7 +30,7 @@ export const registroUsuarioSchema = z.object({
   
   cedula: z
     .string()
-    .min(10, "La cédula debe tener al menos 10 dígitos")
+    .min(8, "La cédula debe tener al menos 8 dígitos")
     .max(12, "La cédula no puede exceder 12 dígitos")
     .regex(/^[0-9]+$/, "Solo se permiten números"),
   

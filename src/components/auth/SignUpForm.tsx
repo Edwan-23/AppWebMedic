@@ -1,6 +1,7 @@
 "use client";
 import Checkbox from "@/components/form/input/Checkbox";
 import Label from "@/components/form/Label";
+import DatePicker from "@/components/form/date-picker";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
@@ -101,9 +102,17 @@ export default function SignUpForm() {
     setSuccess("");
 
     if (!isChecked) {
-      setError("Debes aceptar los términos y condiciones");
+      setError("Acepte los términos y condiciones");
       toast.warning("¡Atención!", {
-        description: "Debes aceptar los términos y condiciones para continuar."
+        description: "Acepte los términos y condiciones para continuar."
+      });
+      return;
+    }
+
+    if (!formData.hospital_id) {
+      setError("Seleccione un hospital");
+      toast.warning("¡Atención!", {
+        description: "Seleccione un hospital para continuar."
       });
       return;
     }
@@ -145,7 +154,7 @@ export default function SignUpForm() {
 
       setSuccess("Usuario registrado exitosamente. Redirigiendo...");
       toast.success("¡Registro exitoso!", {
-        description: "Tu cuenta ha sido creada. Redirigiendo al inicio de sesión...",
+        description: "Su cuenta ha sido creada. Redirigiendo al inicio de sesión...",
         id: loadingToast
       });
 
@@ -236,7 +245,7 @@ export default function SignUpForm() {
                       onChange={handleChange}
                       placeholder="1234567890"
                       required
-                      minLength={10}
+                      minLength={8}
                       maxLength={12}
                       pattern="[0-9]*"
                       onInput={(e) => {
@@ -247,24 +256,35 @@ export default function SignUpForm() {
                     />
                   </div>
                   <div>
-                    <Label>Fecha de Nacimiento</Label>
-                    <input
-                      type="date"
-                      name="fecha_nacimiento"
-                      value={formData.fecha_nacimiento}
-                      onChange={handleChange}
-                      max={new Date().toISOString().split('T')[0]}
-                      className={inputClasses}
+                    <DatePicker
+                      id="fecha_nacimiento"
+                      label="Fecha de Nacimiento"
+                      placeholder="Seleccione una fecha"
+                      defaultDate={formData.fecha_nacimiento || undefined}
+                      maxDate={new Date()}
+                      onChange={(selectedDates) => {
+                        if (selectedDates && selectedDates.length > 0) {
+                          const fecha = selectedDates[0];
+                          const fechaFormateada = fecha.toISOString().split('T')[0];
+                          setFormData((prev) => ({
+                            ...prev,
+                            fecha_nacimiento: fechaFormateada
+                          }));
+                        }
+                      }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label>Sexo</Label>
+                  <Label>
+                    Sexo <span className="text-error-500">*</span>
+                  </Label>
                   <select
                     name="sexo"
                     value={formData.sexo}
                     onChange={handleChange}
+                    required
                     className={selectClasses}
                   >
                     <option value="">Seleccione...</option>
@@ -290,13 +310,17 @@ export default function SignUpForm() {
                 </div>
 
                 <div>
-                  <Label>Celular</Label>
+                  <Label>
+                    Celular <span className="text-error-500">*</span>
+                  </Label>
                   <input
                     type="tel"
                     name="celular"
                     value={formData.celular}
                     onChange={handleChange}
                     placeholder="3001234567"
+                    required
+                    minLength={10}
                     maxLength={10}
                     pattern="[0-9]*"
                     onInput={(e) => {
@@ -320,7 +344,9 @@ export default function SignUpForm() {
                 </div>
 
                 <div className="relative">
-                  <Label>Hospital</Label>
+                  <Label>
+                    Hospital <span className="text-error-500">*</span>
+                  </Label>
                   <div className="relative">
                     {selectedHospitalName ? (
                       <div className="relative">
@@ -430,7 +456,7 @@ export default function SignUpForm() {
                       name="confirmar_contrasena"
                       value={formData.confirmar_contrasena}
                       onChange={handleChange}
-                      placeholder="Repite tu contraseña"
+                      placeholder="Repite la contraseña"
                       required
                       className={inputClasses}
                     />

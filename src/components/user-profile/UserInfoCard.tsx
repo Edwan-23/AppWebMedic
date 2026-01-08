@@ -6,6 +6,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import DatePicker from "../form/date-picker";
 import { toast } from "sonner";
 
 interface Usuario {
@@ -411,12 +412,19 @@ export default function UserInfoCard() {
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
-                  <Label>Fecha de Nacimiento</Label>
-                  <Input 
-                    type="date" 
-                    name="fecha_nacimiento"
-                    defaultValue={formData.fecha_nacimiento}
-                    onChange={handleChange}
+                  <DatePicker
+                    id="fecha_nacimiento_editar"
+                    label="Fecha de Nacimiento"
+                    placeholder="Seleccione una fecha"
+                    defaultDate={formData.fecha_nacimiento || undefined}
+                    maxDate={new Date()}
+                    onChange={(selectedDates) => {
+                      if (selectedDates && selectedDates.length > 0) {
+                        const fecha = selectedDates[0];
+                        const fechaFormateada = fecha.toISOString().split('T')[0];
+                        setFormData(prev => ({ ...prev, fecha_nacimiento: fechaFormateada }));
+                      }
+                    }}
                   />
                   {errors.fecha_nacimiento && (
                     <p className="mt-1 text-xs text-red-500">{errors.fecha_nacimiento}</p>

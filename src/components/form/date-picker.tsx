@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
+import { Spanish } from 'flatpickr/dist/l10n/es.js';
 import Label from './Label';
 import { CalenderIcon } from '../../icons';
 import Hook = flatpickr.Options.Hook;
@@ -13,6 +14,8 @@ type PropsType = {
   defaultDate?: DateOption;
   label?: string;
   placeholder?: string;
+  maxDate?: DateOption;
+  minDate?: DateOption;
 };
 
 export default function DatePicker({
@@ -22,15 +25,41 @@ export default function DatePicker({
   label,
   defaultDate,
   placeholder,
+  maxDate,
+  minDate,
 }: PropsType) {
   useEffect(() => {
     const flatPickr = flatpickr(`#${id}`, {
       mode: mode || "single",
       static: true,
-      monthSelectorType: "static",
+      monthSelectorType: "dropdown",
       dateFormat: "Y-m-d",
       defaultDate,
       onChange,
+      locale: Spanish,
+      maxDate,
+      minDate,
+      onReady: function(selectedDates, dateStr, instance) {
+        // Agregar estilos personalizados al selector de mes y año
+        const monthSelect = instance.monthsDropdownContainer;
+        const yearInput = instance.currentYearElement;
+        
+        if (monthSelect) {
+          monthSelect.style.cursor = 'pointer';
+          monthSelect.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+          monthSelect.style.borderRadius = '6px';
+          monthSelect.style.padding = '4px 8px';
+          monthSelect.style.border = '1px solid rgba(59, 130, 246, 0.2)';
+        }
+        
+        if (yearInput) {
+          yearInput.style.cursor = 'pointer';
+          yearInput.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+          yearInput.style.borderRadius = '6px';
+          yearInput.style.padding = '4px 8px';
+          yearInput.style.border = '1px solid rgba(59, 130, 246, 0.2)';
+        }
+      },
     });
 
     return () => {
@@ -38,7 +67,7 @@ export default function DatePicker({
         flatPickr.destroy();
       }
     };
-  }, [mode, onChange, id, defaultDate]);
+  }, [mode, onChange, id, defaultDate, maxDate, minDate]);
 
   return (
     <div>
