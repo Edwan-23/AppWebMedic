@@ -32,6 +32,7 @@ export default function DatePicker({
     const flatPickr = flatpickr(`#${id}`, {
       mode: mode || "single",
       static: true,
+      disableMobile: true,
       monthSelectorType: "dropdown",
       dateFormat: "Y-m-d",
       defaultDate,
@@ -39,6 +40,8 @@ export default function DatePicker({
       locale: Spanish,
       maxDate,
       minDate,
+      allowInput: false,
+      clickOpens: true,
       onReady: function(selectedDates, dateStr, instance) {
         // Agregar estilos personalizados al selector de mes y año
         const monthSelect = instance.monthsDropdownContainer;
@@ -76,8 +79,10 @@ export default function DatePicker({
       <div className="relative">
         <input
           id={id}
+          type="text"
+          readOnly
           placeholder={placeholder}
-          className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3  dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30  bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700  dark:focus:border-brand-800"
+          className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800 cursor-pointer"
         />
 
         <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
