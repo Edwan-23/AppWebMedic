@@ -102,63 +102,114 @@ export default function NotificationDropdown() {
     }
   }, [usuario?.hospital_id]);
 
+  // Cargar notificaciones iniciales
   useEffect(() => {
     if (usuario?.hospital_id) {
-      cargarNotificaciones(); // Carga inicial
-      
-      // Establecer conexión SSE
-      const eventSource = new EventSource(
-        `/api/notificaciones/stream?hospital_id=${usuario.hospital_id}`
-      );
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === "nueva_notificacion" && data.notificacion) {
-            // Agregar nueva notificación al principio y limitar a 7
-            setNotificaciones((prev) => {
-              const nuevasNotificaciones = [data.notificacion, ...prev];
-              return nuevasNotificaciones.slice(0, 7); // Máximo 7 notificaciones
-            });
-            
-            // Reproducir sonido de notificación
-            reproducirSonido();
-            
-            // Mostrar notificación temporal
-            toast.info(data.notificacion.titulo, {
-              description: data.notificacion.mensaje
-            });
-          }
-        } catch (error) {
-          console.error("Error procesando evento SSE:", error);
-        }
-      };
-      
-      eventSource.onerror = () => {
-        eventSource.close();
-      };
-      
-      return () => {
-        eventSource.close();
-      };
+      cargarNotificaciones();
     }
-  }, [usuario, cargarNotificaciones]);
+  }, [usuario?.hospital_id, cargarNotificaciones]);
+
+  // Conexión SSE separada
+  useEffect(() => {
+    if (!usuario?.hospital_id) return;
+
+    console.log(`[SSE] Estableciendo conexión para hospital: ${usuario.hospital_id}`);
+    
+    const eventSource = new EventSource(
+      `/api/notificaciones/stream?hospital_id=${usuario.hospital_id}`
+    );
+    
+    eventSource.onopen = () => {
+      console.log('[SSE] Conexión establecida exitosamente');
+    };
+    
+    eventSource.onmessage = (event) => {
+      console.log('[SSE] Mensaje recibido:', event.data);
+      
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === "nueva_notificacion" && data.notificacion) {
+          console.log('[SSE] Nueva notificación completa:', JSON.stringify(data.notificacion, null, 2));
+          console.log('[SSE] ID de notificación:', data.notificacion.id, 'Tipo:', typeof data.notificacion.id);
+          
+          // Validar que tenga ID válido
+          if (!data.notificacion.id || data.notificacion.id === 0) {
+            console.error('[SSE] Notificación sin ID válido:', data.notificacion);
+            toast.error("Error: Notificación recibida sin ID");
+            return;
+          }
+          
+          // Agregar nueva notificación al principio y limitar a 7
+          setNotificaciones((prev) => {
+            // Evitar duplicados
+            const existe = prev.some(n => n.id === data.notificacion.id);
+            if (existe) {
+              console.log('[SSE] Notificación duplicada, ignorando');
+              return prev;
+            }
+            
+            console.log('[SSE] Agregando notificación al estado con ID:', data.notificacion.id);
+            const nuevasNotificaciones = [data.notificacion, ...prev];
+            return nuevasNotificaciones.slice(0, 7); // Máximo 7 notificaciones
+          });
+          
+          // Reproducir sonido de notificación
+          reproducirSonido();
+          
+          // Mostrar notificación temporal
+          toast.info(data.notificacion.titulo, {
+            description: data.notificacion.mensaje
+          });
+        }
+      } catch (error) {
+        console.error("[SSE] Error procesando evento:", error);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error("[SSE] Error en conexión:", error);
+      console.log("[SSE] Estado de la conexión:", eventSource.readyState);
+      
+      // No cerrar inmediatamente, el navegador intentará reconectar
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log("[SSE] Conexión cerrada permanentemente");
+      }
+    };
+    
+    return () => {
+      console.log('[SSE] Cerrando conexión');
+      eventSource.close();
+    };
+  }, [usuario?.hospital_id]);
 
   const marcarComoLeida = async (id: number) => {
+    console.log('[NOTIF] Intentando marcar como leída, ID:', id);
+    
+    if (!id || id === 0) {
+      console.error('[NOTIF] ID inválido:', id);
+      toast.error("Error: Notificación sin ID válido");
+      return;
+    }
+    
     try {
       const res = await fetch(`/api/notificaciones/${id}`, {
         method: "PATCH"
       });
 
-      if (!res.ok) throw new Error("Error al marcar notificación");
+      if (!res.ok) {
+        console.error('[NOTIF] Error en respuesta:', res.status, res.statusText);
+        throw new Error("Error al marcar notificación");
+      }
 
+      console.log('[NOTIF] Marcada como leída exitosamente');
+      
       // Actualizar estado local
       setNotificaciones(prev =>
         prev.map(n => (n.id === id ? { ...n, leida: true } : n))
       );
     } catch (error) {
-      console.error("Error:", error);
+      console.error("[NOTIF] Error:", error);
       toast.error("Error al marcar notificación");
     }
   };
@@ -196,6 +247,7 @@ export default function NotificationDropdown() {
         case "corazon":
           return "/donaciones?tipo=recibidas";
         case "pago":
+        case "facturacion":
           return "/facturacion";
         default:
           break;
@@ -216,6 +268,8 @@ export default function NotificationDropdown() {
       case "corazon":
         return "/donaciones?tipo=recibidas";
       case "pago":
+      case "pago_exitoso":
+      case "pago_realizado":
         return "/facturacion";
       default:
         return "/"; // Dashboard por defecto

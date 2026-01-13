@@ -87,6 +87,24 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Crear notificación para el hospital que realizó el pago
+    try {
+      if (nuevoPago.solicitudes?.hospital_id) {
+        await prisma.notificaciones.create({
+          data: {
+            titulo: "Pago Registrado Exitosamente",
+            mensaje: `Tu pago de $${datos.monto.toLocaleString('es-CO')} ha sido procesado correctamente. Transacción: ${transaccionId}. Puedes revisar los detalles en tu facturación.`,
+            tipo: "pago_realizado",
+            hospital_id: nuevoPago.solicitudes.hospital_id,
+            referencia_id: nuevoPago.id,
+            referencia_tipo: "facturacion"
+          }
+        });
+      }
+    } catch (notifError) {
+      console.error("Error al crear notificación:", notifError);
+    }
+
     return NextResponse.json({
       success: true,
       mensaje: "Pago registrado exitosamente",

@@ -162,6 +162,11 @@ export async function POST(request: NextRequest) {
             }
           });
           
+          console.log('[NOTIF] Enviando notificación de pago recibido:', {
+            hospital_id: publicacion.hospital_id.toString(),
+            notificacion_id: nuevaNotificacion.id.toString()
+          });
+          
           await notificarClientes(publicacion.hospital_id, {
             id: Number(nuevaNotificacion.id),
             titulo: nuevaNotificacion.titulo,
@@ -175,6 +180,38 @@ export async function POST(request: NextRequest) {
             created_at: nuevaNotificacion.created_at
           });
         }
+      }
+
+      // Notificar al hospital que realizó el pago
+      if (datosSolicitud.hospital_id) {
+        const notificacionPagoExitoso = await prisma.notificaciones.create({
+          data: {
+            titulo: "Pago Exitoso",
+            mensaje: `Tu pago de $${datosPago.monto.toLocaleString()} por ${medicamento} ha sido procesado correctamente. Transacción: ${resultado.pago.transaccion}. Revisa los detalles en tu facturación.`,
+            tipo: "pago_exitoso",
+            hospital_id: BigInt(datosSolicitud.hospital_id),
+            referencia_id: resultado.pago.id,
+            referencia_tipo: "facturacion"
+          }
+        });
+
+        console.log('[NOTIF] Enviando notificación de pago exitoso:', {
+          hospital_id: datosSolicitud.hospital_id,
+          notificacion_id: notificacionPagoExitoso.id.toString()
+        });
+
+        await notificarClientes(BigInt(datosSolicitud.hospital_id), {
+          id: Number(notificacionPagoExitoso.id),
+          titulo: notificacionPagoExitoso.titulo,
+          mensaje: notificacionPagoExitoso.mensaje,
+          tipo: notificacionPagoExitoso.tipo,
+          hospital_id: Number(datosSolicitud.hospital_id),
+          usuario_id: null,
+          leida: false,
+          referencia_id: Number(resultado.pago.id),
+          referencia_tipo: "facturacion",
+          created_at: notificacionPagoExitoso.created_at
+        });
       }
     } catch (notifError) {
       console.error("Error al crear notificación de pago:", notifError);

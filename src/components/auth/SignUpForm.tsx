@@ -4,7 +4,7 @@ import Label from "@/components/form/Label";
 import DatePicker from "@/components/form/date-picker";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 interface Hospital {
@@ -14,6 +14,21 @@ interface Hospital {
   municipio?: string;
 }
 
+interface ErroresValidacion {
+  nombres?: string;
+  apellidos?: string;
+  cedula?: string;
+  fecha_nacimiento?: string;
+  sexo?: string;
+  correo_corporativo?: string;
+  celular?: string;
+  numero_tarjeta_profesional?: string;
+  hospital_id?: string;
+  contrasena?: string;
+  confirmar_contrasena?: string;
+  terminos?: string;
+}
+
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -21,6 +36,22 @@ export default function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [erroresValidacion, setErroresValidacion] = useState<ErroresValidacion>({});
+
+  const formRefs = {
+    nombres: useRef<HTMLInputElement>(null),
+    apellidos: useRef<HTMLInputElement>(null),
+    cedula: useRef<HTMLInputElement>(null),
+    fecha_nacimiento: useRef<HTMLDivElement>(null),
+    sexo: useRef<HTMLSelectElement>(null),
+    correo_corporativo: useRef<HTMLInputElement>(null),
+    celular: useRef<HTMLInputElement>(null),
+    numero_tarjeta_profesional: useRef<HTMLInputElement>(null),
+    hospital_id: useRef<HTMLDivElement>(null),
+    contrasena: useRef<HTMLInputElement>(null),
+    confirmar_contrasena: useRef<HTMLInputElement>(null),
+    terminos: useRef<HTMLDivElement>(null),
+  };
 
   const [hospitales, setHospitales] = useState<Hospital[]>([]);
   const [searchHospital, setSearchHospital] = useState("");
@@ -52,15 +83,10 @@ export default function SignUpForm() {
           // La API devuelve un array filtrado
           setHospitales(hospitalesData || []);
         } else {
-          toast.error("Error al cargar hospitales", {
-            description: "No se pudieron cargar los hospitales disponibles."
-          });
+          console.error("Error al cargar hospitales");
         }
       } catch (error) {
         console.error("Error al cargar datos:", error);
-        toast.error("Error de conexión", {
-          description: "No se pudo conectar con el servidor."
-        });
       }
     };
 
@@ -73,6 +99,14 @@ export default function SignUpForm() {
       ...prev,
       [name]: value,
     }));
+
+    // Limpiar error del campo cuando el usuario escribe
+    if (erroresValidacion[name as keyof ErroresValidacion]) {
+      setErroresValidacion((prev) => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   const handleSearchHospital = (value: string) => {
@@ -89,6 +123,8 @@ export default function SignUpForm() {
     setSelectedHospitalName(hospital.nombre);
     setSearchHospital("");
     setShowHospitalDropdown(false);
+    // Limpiar error
+    setErroresValidacion((prev) => ({ ...prev, hospital_id: undefined }));
   };
 
   const filteredHospitales = hospitales.filter((hospital) =>
@@ -100,25 +136,110 @@ export default function SignUpForm() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setErroresValidacion({});
 
+    const nuevosErrores: ErroresValidacion = {};
+
+    // Validar términos y condiciones
     if (!isChecked) {
-      setError("Acepte los términos y condiciones");
-      toast.warning("¡Atención!", {
-        description: "Acepte los términos y condiciones para continuar."
-      });
-      return;
+      nuevosErrores.terminos = "Debe aceptar los términos y condiciones para continuar";
     }
 
+    // Validar hospital
     if (!formData.hospital_id) {
-      setError("Seleccione un hospital");
-      toast.warning("¡Atención!", {
-        description: "Seleccione un hospital para continuar."
-      });
+      nuevosErrores.hospital_id = "Debe seleccionar un hospital";
+    }
+
+    // Validar nombres
+    if (!formData.nombres.trim()) {
+      nuevosErrores.nombres = "Los nombres son obligatorios";
+    } else if (formData.nombres.trim().length < 2) {
+      nuevosErrores.nombres = "Los nombres deben tener al menos 2 caracteres";
+    }
+
+    // Validar apellidos
+    if (!formData.apellidos.trim()) {
+      nuevosErrores.apellidos = "Los apellidos son obligatorios";
+    } else if (formData.apellidos.trim().length < 2) {
+      nuevosErrores.apellidos = "Los apellidos deben tener al menos 2 caracteres";
+    }
+
+    // Validar cédula
+    if (!formData.cedula) {
+      nuevosErrores.cedula = "La cédula es obligatoria";
+    } else if (!/^\d{8,12}$/.test(formData.cedula)) {
+      nuevosErrores.cedula = "La cédula debe tener entre 8 y 12 dígitos";
+    }
+
+    // Validar fecha de nacimiento
+    if (!formData.fecha_nacimiento) {
+      nuevosErrores.fecha_nacimiento = "La fecha de nacimiento es obligatoria";
+    }
+
+    // Validar sexo
+    if (!formData.sexo) {
+      nuevosErrores.sexo = "Debe seleccionar el sexo";
+    }
+
+    // Validar correo
+    if (!formData.correo_corporativo) {
+      nuevosErrores.correo_corporativo = "El correo corporativo es obligatorio";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo_corporativo)) {
+      nuevosErrores.correo_corporativo = "El correo debe tener un formato válido (ejemplo@dominio.com)";
+    }
+
+    // Validar celular
+    if (!formData.celular) {
+      nuevosErrores.celular = "El celular es obligatorio";
+    } else if (!/^\d{10}$/.test(formData.celular)) {
+      nuevosErrores.celular = "El celular debe tener exactamente 10 dígitos";
+    }
+
+    // Validar contraseña
+    if (!formData.contrasena) {
+      nuevosErrores.contrasena = "La contraseña es obligatoria";
+    } else if (formData.contrasena.length < 8) {
+      nuevosErrores.contrasena = "La contraseña debe tener al menos 8 caracteres";
+    } else if (!/(?=.*[a-z])/.test(formData.contrasena)) {
+      nuevosErrores.contrasena = "La contraseña debe contener al menos una letra minúscula";
+    } else if (!/(?=.*[A-Z])/.test(formData.contrasena)) {
+      nuevosErrores.contrasena = "La contraseña debe contener al menos una letra mayúscula";
+    } else if (!/(?=.*\d)/.test(formData.contrasena)) {
+      nuevosErrores.contrasena = "La contraseña debe contener al menos un número";
+    } else if (!/(?=.*[@$!%*?&#._-])/.test(formData.contrasena)) {
+      nuevosErrores.contrasena = "La contraseña debe contener al menos un símbolo (@$!%*?&#._-)";
+    }
+
+    // Validar confirmación de contraseña
+    if (!formData.confirmar_contrasena) {
+      nuevosErrores.confirmar_contrasena = "Debe confirmar la contraseña";
+    } else if (formData.contrasena !== formData.confirmar_contrasena) {
+      nuevosErrores.confirmar_contrasena = "Las contraseñas no coinciden";
+    }
+
+    // Si hay errores, mostrarlos y hacer scroll al primero
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErroresValidacion(nuevosErrores);
+
+      // Scroll al primer campo con error (después de actualizar el estado)
+      setTimeout(() => {
+        const primerCampoConError = Object.keys(nuevosErrores)[0] as keyof typeof formRefs;
+        const ref = formRefs[primerCampoConError];
+        if (ref?.current) {
+          ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Hacer focus si el elemento lo soporta
+          setTimeout(() => {
+            if (ref.current && 'focus' in ref.current && typeof ref.current.focus === 'function') {
+              (ref.current as HTMLInputElement | HTMLSelectElement).focus();
+            }
+          }, 500);
+        }
+      }, 100);
+
       return;
     }
 
     setIsLoading(true);
-    const loadingToast = toast.loading("Registrando usuario...");
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -138,24 +259,15 @@ export default function SignUpForm() {
         if (data.detalles) {
           const errores = data.detalles.map((d: any) => d.mensaje).join(", ");
           setError(errores);
-          toast.error("Error de validación", {
-            description: errores,
-            id: loadingToast
-          });
         } else {
           setError(data.error || "Error al registrar usuario");
-          toast.error("¡Error al registrar!", {
-            description: data.error || "No se pudo completar el registro.",
-            id: loadingToast
-          });
         }
         return;
       }
 
       setSuccess("Usuario registrado exitosamente. Redirigiendo...");
       toast.success("¡Registro exitoso!", {
-        description: "Su cuenta ha sido creada. Redirigiendo al inicio de sesión...",
-        id: loadingToast
+        description: "Su cuenta ha sido creada. Redirigiendo al inicio de sesión..."
       });
 
       setTimeout(() => {
@@ -164,10 +276,6 @@ export default function SignUpForm() {
     } catch (error) {
       console.error("Error:", error);
       setError("Error al conectar con el servidor");
-      toast.error("Error de conexión", {
-        description: "No se pudo conectar con el servidor. Intenta de nuevo.",
-        id: loadingToast
-      });
     } finally {
       setIsLoading(false);
     }
@@ -210,6 +318,7 @@ export default function SignUpForm() {
                       Nombres <span className="text-error-500">*</span>
                     </Label>
                     <input
+                      ref={formRefs.nombres}
                       type="text"
                       name="nombres"
                       value={formData.nombres}
@@ -217,12 +326,16 @@ export default function SignUpForm() {
                       required
                       className={inputClasses}
                     />
+                    {erroresValidacion.nombres && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.nombres}</p>
+                    )}
                   </div>
                   <div>
                     <Label>
                       Apellidos <span className="text-error-500">*</span>
                     </Label>
                     <input
+                      ref={formRefs.apellidos}
                       type="text"
                       name="apellidos"
                       value={formData.apellidos}
@@ -230,6 +343,9 @@ export default function SignUpForm() {
                       required
                       className={inputClasses}
                     />
+                    {erroresValidacion.apellidos && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.apellidos}</p>
+                    )}
                   </div>
                 </div>
 
@@ -239,6 +355,7 @@ export default function SignUpForm() {
                       Cédula <span className="text-error-500">*</span>
                     </Label>
                     <input
+                      ref={formRefs.cedula}
                       type="text"
                       name="cedula"
                       value={formData.cedula}
@@ -254,11 +371,16 @@ export default function SignUpForm() {
                       }}
                       className={inputClasses}
                     />
+                    {erroresValidacion.cedula && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.cedula}</p>
+                    )}
                   </div>
-                  <div>
+                  <div ref={formRefs.fecha_nacimiento}>
+                    <Label>
+                      Fecha de Nacimiento <span className="text-error-500">*</span>
+                    </Label>
                     <DatePicker
                       id="fecha_nacimiento"
-                      label="Fecha de Nacimiento"
                       placeholder="Seleccione una fecha"
                       defaultDate={formData.fecha_nacimiento || undefined}
                       maxDate={new Date()}
@@ -270,9 +392,14 @@ export default function SignUpForm() {
                             ...prev,
                             fecha_nacimiento: fechaFormateada
                           }));
+                          // Limpiar error
+                          setErroresValidacion((prev) => ({ ...prev, fecha_nacimiento: undefined }));
                         }
                       }}
                     />
+                    {erroresValidacion.fecha_nacimiento && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.fecha_nacimiento}</p>
+                    )}
                   </div>
                 </div>
 
@@ -281,6 +408,7 @@ export default function SignUpForm() {
                     Sexo <span className="text-error-500">*</span>
                   </Label>
                   <select
+                    ref={formRefs.sexo}
                     name="sexo"
                     value={formData.sexo}
                     onChange={handleChange}
@@ -292,6 +420,9 @@ export default function SignUpForm() {
                     <option value="Mujer">Mujer</option>
                     <option value="Otro">Otro</option>
                   </select>
+                  {erroresValidacion.sexo && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.sexo}</p>
+                  )}
                 </div>
 
                 <div>
@@ -299,6 +430,7 @@ export default function SignUpForm() {
                     Correo Corporativo <span className="text-error-500">*</span>
                   </Label>
                   <input
+                    ref={formRefs.correo_corporativo}
                     type="email"
                     name="correo_corporativo"
                     value={formData.correo_corporativo}
@@ -307,6 +439,9 @@ export default function SignUpForm() {
                     required
                     className={inputClasses}
                   />
+                  {erroresValidacion.correo_corporativo && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.correo_corporativo}</p>
+                  )}
                 </div>
 
                 <div>
@@ -314,6 +449,7 @@ export default function SignUpForm() {
                     Celular <span className="text-error-500">*</span>
                   </Label>
                   <input
+                    ref={formRefs.celular}
                     type="tel"
                     name="celular"
                     value={formData.celular}
@@ -329,6 +465,9 @@ export default function SignUpForm() {
                     }}
                     className={inputClasses}
                   />
+                  {erroresValidacion.celular && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.celular}</p>
+                  )}
                 </div>
 
                 <div>
@@ -343,7 +482,7 @@ export default function SignUpForm() {
                   />
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={formRefs.hospital_id}>
                   <Label>
                     Hospital <span className="text-error-500">*</span>
                   </Label>
@@ -417,6 +556,9 @@ export default function SignUpForm() {
                       onClick={() => setShowHospitalDropdown(false)}
                     />
                   )}
+                  {erroresValidacion.hospital_id && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.hospital_id}</p>
+                  )}
                 </div>
 
                 <div>
@@ -425,6 +567,7 @@ export default function SignUpForm() {
                   </Label>
                   <div className="relative">
                     <input
+                      ref={formRefs.contrasena}
                       type={showPassword ? "text" : "password"}
                       name="contrasena"
                       value={formData.contrasena}
@@ -444,6 +587,9 @@ export default function SignUpForm() {
                       )}
                     </span>
                   </div>
+                  {erroresValidacion.contrasena && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.contrasena}</p>
+                  )}
                 </div>
 
                 <div>
@@ -452,6 +598,7 @@ export default function SignUpForm() {
                   </Label>
                   <div className="relative">
                     <input
+                      ref={formRefs.confirmar_contrasena}
                       type={showConfirmPassword ? "text" : "password"}
                       name="confirmar_contrasena"
                       value={formData.confirmar_contrasena}
@@ -471,32 +618,45 @@ export default function SignUpForm() {
                       )}
                     </span>
                   </div>
+                  {erroresValidacion.confirmar_contrasena && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.confirmar_contrasena}</p>
+                  )}
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    className="w-5 h-5 mt-0.5"
-                    checked={isChecked}
-                    onChange={setIsChecked}
-                  />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Al crear una cuenta, aceptas los{" "}
-                    <Link
-                      href="/terminos-condiciones"
-                      target="_blank"
-                      className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
-                    >
-                      Términos y Condiciones
-                    </Link>{" "}
-                    y nuestra{" "}
-                    <Link
-                      href="/politicas-privacidad"
-                      target="_blank"
-                      className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
-                    >
-                      Política de Privacidad
-                    </Link>
-                  </p>
+                <div ref={formRefs.terminos}>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      className="w-5 h-5 mt-0.5"
+                      checked={isChecked}
+                      onChange={(value) => {
+                        setIsChecked(value);
+                        if (value) {
+                          setErroresValidacion((prev) => ({ ...prev, terminos: undefined }));
+                        }
+                      }}
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Al crear una cuenta, aceptas los{" "}
+                      <Link
+                        href="/terminos-condiciones"
+                        target="_blank"
+                        className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
+                      >
+                        Términos y Condiciones
+                      </Link>{" "}
+                      y nuestra{" "}
+                      <Link
+                        href="/politicas-privacidad"
+                        target="_blank"
+                        className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
+                      >
+                        Política de Privacidad
+                      </Link>
+                    </p>
+                  </div>
+                  {erroresValidacion.terminos && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.terminos}</p>
+                  )}
                 </div>
 
                 <div>
