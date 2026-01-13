@@ -7,6 +7,7 @@ import { PencilIcon, TrashBinIcon } from "@/icons/index";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import DatePicker from "@/components/form/date-picker";
 
 interface Aviso {
   id: string;
@@ -109,13 +110,14 @@ export default function AvisosPage() {
         body: JSON.stringify({
           ...formData,
           usuario_id: usuarioActual.id,
+          publicado: false, // Guardar como borrador
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Aviso creado exitosamente");
+        toast.success("Aviso guardado como borrador");
         closeCreateModal();
         cargarAvisos();
       } else {
@@ -124,6 +126,35 @@ export default function AvisosPage() {
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al crear aviso");
+    }
+  };
+
+  const handleSubmitCrearYPublicar = async () => {
+    try {
+      const response = await fetch("/api/avisos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          usuario_id: usuarioActual.id,
+          publicado: true, // Publicar inmediatamente
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Aviso creado y publicado exitosamente");
+        closeCreateModal();
+        cargarAvisos();
+      } else {
+        toast.error(data.error || "Error al crear y publicar aviso");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al crear y publicar aviso");
     }
   };
 
@@ -380,14 +411,20 @@ export default function AvisosPage() {
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Fecha de Finalización *
               </label>
-              <input
-                type="date"
-                value={formData.fecha}
-                onChange={(e) =>
-                  setFormData({ ...formData, fecha: e.target.value })
-                }
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              <DatePicker
+                id="fecha-finalizacion-crear"
+                defaultDate={formData.fecha || undefined}
+                onChange={(selectedDates) => {
+                  if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setFormData({ ...formData, fecha: `${year}-${month}-${day}` });
+                  }
+                }}
+                minDate="today"
+                placeholder="Seleccione una fecha"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 El aviso se desactiva automáticamente en esta fecha
@@ -417,9 +454,15 @@ export default function AvisosPage() {
               </button>
               <button
                 onClick={handleSubmitCrear}
+                className="rounded-lg border border-brand-500 bg-white px-4 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-800 dark:text-brand-400 dark:hover:bg-brand-900/20"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={handleSubmitCrearYPublicar}
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
               >
-                Crear Aviso
+                Guardar y Publicar
               </button>
             </div>
           </div>
@@ -455,14 +498,20 @@ export default function AvisosPage() {
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Fecha de Desactivación *
               </label>
-              <input
-                type="date"
-                value={formData.fecha}
-                onChange={(e) =>
-                  setFormData({ ...formData, fecha: e.target.value })
-                }
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              <DatePicker
+                id="fecha-finalizacion-editar"
+                defaultDate={formData.fecha || undefined}
+                onChange={(selectedDates) => {
+                  if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setFormData({ ...formData, fecha: `${year}-${month}-${day}` });
+                  }
+                }}
+                minDate="today"
+                placeholder="Seleccione una fecha"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 El aviso se desactiva automáticamente en esta fecha

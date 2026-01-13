@@ -353,9 +353,13 @@ export default function ListaPagos() {
                           title={pagoExpandido === pago.id ? 'Cerrar detalles' : 'Ver detalles'}
                         >
                           {pagoExpandido === pago.id ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                            </svg>
+                            <Image 
+                              src="/images/icons/arrow-up.svg" 
+                              alt="Cerrar" 
+                              width={20} 
+                              height={20}
+                              className="w-5 h-5"
+                            />
                           ) : (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -371,15 +375,23 @@ export default function ListaPagos() {
                             className="p-1.5 text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-all"
                             title="Ver envío"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                            </svg>
+                            <Image 
+                              src="/images/icons/truck.svg" 
+                              alt="Envío" 
+                              width={20} 
+                              height={20}
+                              className="w-5 h-5"
+                            />
                           </a>
                         ) : pago.estado === "Completado" ? (
                           <div className="p-1.5 text-gray-400 dark:text-gray-600" title="Procesando envío...">
-                            <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <Image 
+                              src="/images/icons/clock.svg" 
+                              alt="Procesando" 
+                              width={20} 
+                              height={20}
+                              className="w-5 h-5 animate-pulse"
+                            />
                           </div>
                         ) : pago.estado === "Pendiente" ? (
                           <div className="p-1.5 text-yellow-600 dark:text-yellow-400" title="En verificación">

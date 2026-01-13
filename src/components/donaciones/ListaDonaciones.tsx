@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Label from "@/components/form/Label";
 import { Modal } from "@/components/ui/modal";
 import ImageUpload from "@/components/form/ImageUpload";
+import DatePicker from "@/components/form/date-picker";
 
 interface Medicamento {
   id: number;
@@ -596,35 +597,35 @@ export default function ListaDonaciones() {
                       )}
                     </div>
                   </div>
-
-                  {/* Botones para DONANTE - al lado del contenido */}
-                  {Number(donacion.hospital_origen_id) === Number(usuario?.hospital_id) && (
-                    <div className="flex sm:flex-col gap-2 mt-4 sm:mt-0">
-                      {!donacion.envio_id ? (
-                        <button
-                          onClick={() => abrirFormularioEnvio(donacion)}
-                          className="flex-1 sm:flex-none px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium transition-colors"
-                        >
-                          Iniciar Envío
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => window.location.href = `/envios?id=${donacion.envio_id}`}
-                          className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                        >
-                          Seguimiento
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
 
-                {/* Botones para RECEPTOR - al final de la tarjeta */}
+                {/* Botones para DONANTE */}
+                {Number(donacion.hospital_origen_id) === Number(usuario?.hospital_id) && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    {!donacion.envio_id ? (
+                      <button
+                        onClick={() => abrirFormularioEnvio(donacion)}
+                        className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium transition-colors"
+                      >
+                        Iniciar Envío
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => window.location.href = `/envios?id=${donacion.envio_id}`}
+                        className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                      >
+                        Seguimiento
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Botones para RECEPTOR */}
                 {Number(donacion.hospital_id) === Number(usuario?.hospital_id) && Number(donacion.hospital_origen_id) !== Number(usuario?.hospital_id) && donacion.envio_id && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-center">
                     <button
                       onClick={() => window.location.href = `/envios?id=${donacion.envio_id}`}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                      className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
                     >
                       Ver Seguimiento
                     </button>
@@ -869,28 +870,52 @@ export default function ListaDonaciones() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Fecha de Recolección *</Label>
-                <input
-                  type="date"
-                  name="fecha_recoleccion"
-                  value={formEnvio.fecha_recoleccion}
-                  onChange={handleChangeEnvio}
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                <DatePicker
+                  id="fecha-recoleccion-donacion"
+                  label="Fecha de Recolección *"
+                  defaultDate={formEnvio.fecha_recoleccion || undefined}
+                  onChange={(selectedDates) => {
+                    if (selectedDates.length > 0) {
+                      const date = selectedDates[0];
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      handleChangeEnvio({
+                        target: {
+                          name: 'fecha_recoleccion',
+                          value: `${year}-${month}-${day}`
+                        }
+                      } as any);
+                    }
+                  }}
+                  placeholder="Seleccionar fecha de recolección"
+                  minDate="today"
                 />
               </div>
 
               <div>
-                <Label>Fecha Entrega Estimada *</Label>
-                <input
-                  type="date"
-                  name="fecha_entrega_estimada"
-                  value={formEnvio.fecha_entrega_estimada}
-                  onChange={handleChangeEnvio}
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                <DatePicker
+                  id="fecha-entrega-estimada-donacion"
+                  label="Fecha Entrega Estimada *"
+                  defaultDate={formEnvio.fecha_entrega_estimada || undefined}
+                  onChange={(selectedDates) => {
+                    if (selectedDates.length > 0) {
+                      const date = selectedDates[0];
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      handleChangeEnvio({
+                        target: {
+                          name: 'fecha_entrega_estimada',
+                          value: `${year}-${month}-${day}`
+                        }
+                      } as any);
+                    }
+                  }}
+                  placeholder="Seleccionar fecha de entrega estimada"
+                  minDate={formEnvio.fecha_recoleccion || "today"}
                 />
               </div>
             </div>

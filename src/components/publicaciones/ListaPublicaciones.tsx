@@ -669,14 +669,22 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               : "border-2 border-gray-300 text-gray-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
               }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <Image 
+              src="/images/icons/calendar.svg" 
+              alt="Calendario" 
+              width={16} 
+              height={16}
+              className="w-4 h-4"
+            />
             Fecha Creación
             {orderByExpiracion === null && (
-              <svg className={`w-4 h-4 transition-transform ${orderByCreacion === "desc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
+              <Image 
+                src="/images/icons/arrow-up.svg" 
+                alt="Ordenar" 
+                width={16} 
+                height={16}
+                className={`w-4 h-4 transition-transform ${orderByCreacion === "desc" ? "rotate-180" : ""}`}
+              />
             )}
           </button>
 
@@ -688,14 +696,22 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               : "border-2 border-gray-300 text-gray-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
               }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Image 
+              src="/images/icons/clock.svg" 
+              alt="Reloj" 
+              width={16} 
+              height={16}
+              className="w-4 h-4"
+            />
             Vencimiento
             {orderByExpiracion !== null && (
-              <svg className={`w-4 h-4 transition-transform ${orderByExpiracion === "desc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
+              <Image 
+                src="/images/icons/arrow-up.svg" 
+                alt="Ordenar" 
+                width={16} 
+                height={16}
+                className={`w-4 h-4 transition-transform ${orderByExpiracion === "desc" ? "rotate-180" : ""}`}
+              />
             )}
           </button>
 
@@ -1056,30 +1072,46 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                       <div className="flex flex-wrap gap-4 mt-3 text-sm">
                         {/* Cantidad solo desktop */}
                         <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
+                          <Image 
+                            src="/images/icons/box.svg" 
+                            alt="Cantidad" 
+                            width={16} 
+                            height={16}
+                            className="w-4 h-4"
+                          />
                           <span className="font-medium">{pub.cantidad}</span> {pub.unidad_dispensacion?.nombre || "unidades"}
                         </div>
                         {/* Fecha de expiración solo desktop */}
                         <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                          <Image 
+                            src="/images/icons/calendar.svg" 
+                            alt="Vencimiento" 
+                            width={16} 
+                            height={16}
+                            className="w-4 h-4"
+                          />
                           Vencimiento: <span className="font-medium">{formatearFecha(pub.fecha_expiracion)}</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" />
-                          </svg>
+                          <Image 
+                            src="/images/icons/document-text.svg" 
+                            alt="INVIMA" 
+                            width={16} 
+                            height={16}
+                            className="w-4 h-4"
+                          />
                           INVIMA: <span className="font-medium">{pub.reg_invima}</span>
                         </div>
 
                         {pub.medicamentos?.medida_medicamento && (
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3h6 M10 3v4l-4 8a4 4 0 003.6 6h4.8a4 4 0 003.6-6l-4-8V3 M12 17h.01"/>
-                            </svg>
+                            <Image 
+                              src="/images/icons/beaker.svg" 
+                              alt="Concentración" 
+                              width={16} 
+                              height={16}
+                              className="w-4 h-4"
+                            />
                             {pub.medicamentos.concentracion} {pub.medicamentos.medida_medicamento.nombre}
                           </div>
                         )}
@@ -1095,9 +1127,13 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                     {/* Fecha de publicación (primero en móvil) */}
                     {pub.created_at && (
                       <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Image 
+                          src="/images/icons/clock.svg" 
+                          alt="Fecha" 
+                          width={14} 
+                          height={14}
+                          className="w-3.5 h-3.5"
+                        />
                         <span>{formatearFecha(pub.created_at)}</span>
                       </div>
                     )}

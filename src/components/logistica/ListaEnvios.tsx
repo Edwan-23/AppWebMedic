@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
@@ -691,13 +692,21 @@ export default function ListaEnvios() {
             onClick={() => setOrdenRecoleccion(prev => prev === "asc" ? "desc" : "asc")}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-brand-500 text-white hover:bg-brand-600"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <Image 
+              src="/images/icons/calendar.svg" 
+              alt="Calendario" 
+              width={16} 
+              height={16}
+              className="w-4 h-4"
+            />
             Fecha Recolección
-            <svg className={`w-4 h-4 transition-transform ${ordenRecoleccion === "desc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
+            <Image 
+              src="/images/icons/arrow-up.svg" 
+              alt="Ordenar" 
+              width={16} 
+              height={16}
+              className={`w-4 h-4 transition-transform ${ordenRecoleccion === "desc" ? "rotate-180" : ""}`}
+            />
           </button>
 
           {/* Botones y contador */}

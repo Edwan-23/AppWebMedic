@@ -112,30 +112,23 @@ export default function NotificationDropdown() {
   // Conexión SSE separada
   useEffect(() => {
     if (!usuario?.hospital_id) return;
-
-    console.log(`[SSE] Estableciendo conexión para hospital: ${usuario.hospital_id}`);
     
     const eventSource = new EventSource(
       `/api/notificaciones/stream?hospital_id=${usuario.hospital_id}`
     );
     
-    eventSource.onopen = () => {
-      console.log('[SSE] Conexión establecida exitosamente');
-    };
-    
     eventSource.onmessage = (event) => {
-      console.log('[SSE] Mensaje recibido:', event.data);
-      
       try {
         const data = JSON.parse(event.data);
         
+        if (data.type === "connected") {
+          return;
+        }
+        
         if (data.type === "nueva_notificacion" && data.notificacion) {
-          console.log('[SSE] Nueva notificación completa:', JSON.stringify(data.notificacion, null, 2));
-          console.log('[SSE] ID de notificación:', data.notificacion.id, 'Tipo:', typeof data.notificacion.id);
           
           // Validar que tenga ID válido
           if (!data.notificacion.id || data.notificacion.id === 0) {
-            console.error('[SSE] Notificación sin ID válido:', data.notificacion);
             toast.error("Error: Notificación recibida sin ID");
             return;
           }
@@ -144,12 +137,8 @@ export default function NotificationDropdown() {
           setNotificaciones((prev) => {
             // Evitar duplicados
             const existe = prev.some(n => n.id === data.notificacion.id);
-            if (existe) {
-              console.log('[SSE] Notificación duplicada, ignorando');
-              return prev;
-            }
+            if (existe) return prev;
             
-            console.log('[SSE] Agregando notificación al estado con ID:', data.notificacion.id);
             const nuevasNotificaciones = [data.notificacion, ...prev];
             return nuevasNotificaciones.slice(0, 7); // Máximo 7 notificaciones
           });
@@ -163,31 +152,20 @@ export default function NotificationDropdown() {
           });
         }
       } catch (error) {
-        console.error("[SSE] Error procesando evento:", error);
+        console.error("Error procesando evento SSE:", error);
       }
     };
     
-    eventSource.onerror = (error) => {
-      console.error("[SSE] Error en conexión:", error);
-      console.log("[SSE] Estado de la conexión:", eventSource.readyState);
-      
-      // No cerrar inmediatamente, el navegador intentará reconectar
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.log("[SSE] Conexión cerrada permanentemente");
-      }
+    eventSource.onerror = () => {
     };
     
     return () => {
-      console.log('[SSE] Cerrando conexión');
       eventSource.close();
     };
   }, [usuario?.hospital_id]);
 
   const marcarComoLeida = async (id: number) => {
-    console.log('[NOTIF] Intentando marcar como leída, ID:', id);
-    
     if (!id || id === 0) {
-      console.error('[NOTIF] ID inválido:', id);
       toast.error("Error: Notificación sin ID válido");
       return;
     }
@@ -198,18 +176,14 @@ export default function NotificationDropdown() {
       });
 
       if (!res.ok) {
-        console.error('[NOTIF] Error en respuesta:', res.status, res.statusText);
         throw new Error("Error al marcar notificación");
       }
-
-      console.log('[NOTIF] Marcada como leída exitosamente');
       
       // Actualizar estado local
       setNotificaciones(prev =>
         prev.map(n => (n.id === id ? { ...n, leida: true } : n))
       );
     } catch (error) {
-      console.error("[NOTIF] Error:", error);
       toast.error("Error al marcar notificación");
     }
   };
@@ -263,6 +237,7 @@ export default function NotificationDropdown() {
       case "pin_envio":
         return "/envios";
       case "publicacion":
+      case "aviso":
         return "/publicaciones";
       case "donacion":
       case "corazon":
@@ -321,47 +296,75 @@ export default function NotificationDropdown() {
     switch (tipo) {
       case "publicacion":
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
+          <Image 
+            src="/images/icons/archive.svg" 
+            alt="Publicación" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       case "envio":
       case "estado_envio":
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-          </svg>
+          <Image 
+            src="/images/icons/truck.svg" 
+            alt="Envío" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       case "donacion":
       case "corazon":
         return (
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-          </svg>
+          <Image 
+            src="/images/icons/heart.svg" 
+            alt="Donación" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       case "solicitud":
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+          <Image 
+            src="/images/icons/document.svg" 
+            alt="Solicitud" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       case "pago":
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
+          <Image 
+            src="/images/icons/credit-card.svg" 
+            alt="Pago" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       case "pin_envio":
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-          </svg>
+          <Image 
+            src="/images/icons/key.svg" 
+            alt="PIN" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
       default:
         return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <Image 
+            src="/images/icons/info-circle.svg" 
+            alt="Info" 
+            width={24} 
+            height={24}
+            className="w-6 h-6"
+          />
         );
     }
   };
@@ -473,9 +476,13 @@ export default function NotificationDropdown() {
           </div>
         ) : notificaciones.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
+            <Image 
+              src="/images/icons/bell-large.svg" 
+              alt="Sin notificaciones" 
+              width={64} 
+              height={64}
+              className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-3"
+            />
             <p className="text-gray-500 dark:text-gray-400 font-medium">
               No hay notificaciones
             </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -425,9 +426,13 @@ export default function ListaSolicitudes() {
                                 className="ml-2 p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
                                 title="Copiar celular"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
+                                <Image 
+                                  src="/images/icons/copy.svg" 
+                                  alt="Copiar" 
+                                  width={16} 
+                                  height={16}
+                                  className="w-4 h-4"
+                                />
                               </button>
                             </div>
                           )}
@@ -476,13 +481,13 @@ export default function ListaSolicitudes() {
               className="relative inline-flex items-center rounded-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Anterior</span>
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <Image 
+                src="/images/icons/chevron-left.svg" 
+                alt="Anterior" 
+                width={20} 
+                height={20}
+                className="h-5 w-5"
+              />
             </button>
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Página <span className="font-medium">{page}</span> de{" "}
@@ -494,13 +499,13 @@ export default function ListaSolicitudes() {
               className="relative inline-flex items-center rounded-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Siguiente</span>
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <Image 
+                src="/images/icons/chevron-right.svg" 
+                alt="Siguiente" 
+                width={20} 
+                height={20}
+                className="h-5 w-5"
+              />
             </button>
           </div>
         </div>

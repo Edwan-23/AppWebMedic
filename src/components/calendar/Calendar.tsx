@@ -14,6 +14,7 @@ import {
 import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "sonner";
+import DatePicker from "@/components/form/date-picker";
 
 interface CalendarEvent extends EventInput {
   extendedProps: {
@@ -91,6 +92,13 @@ const Calendar: React.FC = () => {
     resetModalFields();
     setEventStartDate(selectInfo.startStr);
     setEventEndDate(selectInfo.endStr || selectInfo.startStr);
+    openModal();
+  };
+
+  const handleDateClick = (info: any) => {
+    resetModalFields();
+    setEventStartDate(info.dateStr);
+    setEventEndDate(info.dateStr);
     openModal();
   };
 
@@ -220,9 +228,17 @@ const Calendar: React.FC = () => {
           }}
           events={events}
           selectable={true}
+          selectMirror={true}
+          selectLongPressDelay={300}
+          longPressDelay={300}
+          dateClick={handleDateClick}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventContent={renderEventContent}
+          navLinks={false}
+          dayMaxEvents={true}
+          editable={false}
+          droppable={false}
           customButtons={{
             addEventButton: {
               text: "Agregar Evento +",
@@ -301,33 +317,40 @@ const Calendar: React.FC = () => {
             </div>
 
             <div className="mt-6">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                Ingresar fecha de inicio
-              </label>
-              <div className="relative">
-                <input
-                  id="event-start-date"
-                  type="date"
-                  value={eventStartDate}
-                  onChange={(e) => setEventStartDate(e.target.value)}
-                  className="dark:bg-dark-900 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pl-4 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
-                />
-              </div>
+              <DatePicker
+                id="event-start-date"
+                label="Fecha de inicio"
+                defaultDate={eventStartDate || undefined}
+                onChange={(selectedDates) => {
+                  if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setEventStartDate(`${year}-${month}-${day}`);
+                  }
+                }}
+                placeholder="Seleccionar fecha de inicio"
+              />
             </div>
 
             <div className="mt-6">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                Ingresar fecha de fin
-              </label>
-              <div className="relative">
-                <input
-                  id="event-end-date"
-                  type="date"
-                  value={eventEndDate}
-                  onChange={(e) => setEventEndDate(e.target.value)}
-                  className="dark:bg-dark-900 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pl-4 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
-                />
-              </div>
+              <DatePicker
+                id="event-end-date"
+                label="Fecha fin"
+                defaultDate={eventEndDate || undefined}
+                onChange={(selectedDates) => {
+                  if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setEventEndDate(`${year}-${month}-${day}`);
+                  }
+                }}
+                placeholder="Seleccionar fecha fin"
+                minDate={eventStartDate || undefined}
+              />
             </div>
           </div>
           <div className="flex items-center gap-3 mt-6 modal-footer sm:justify-end">

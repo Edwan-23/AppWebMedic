@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notificarClientes } from "../notificaciones/stream/route";
 
 export async function GET() {
   try {
@@ -72,7 +73,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { titulo, descripcion, fecha, usuario_id } = body;
+    const { titulo, descripcion, fecha, usuario_id, publicado = false } = body;
 
     if (!titulo || !descripcion || !fecha || !usuario_id) {
       return NextResponse.json(
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
         descripcion,
         fecha: new Date(fecha),
         usuario_id: BigInt(usuario_id),
-        publicado: false,
+        publicado,
       },
       include: {
         usuarios: {
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
             id: true,
             nombres: true,
             apellidos: true,
+            hospital_id: true,
           },
         },
       },
@@ -122,6 +124,43 @@ export async function POST(request: Request) {
         nombre_completo: `${nuevoAviso.usuarios.nombres} ${nuevoAviso.usuarios.apellidos}`,
       } : null,
     };
+
+    // Si se publica, enviar notificación SSE a todos los hospitales
+    if (publicado) {
+      // Obtener todos los hospitales
+      const hospitales = await prisma.hospitales.findMany({
+        select: { id: true },
+      });
+
+      // Crear notificación y enviar SSE a cada hospital
+      for (const hospital of hospitales) {
+        // Guardar notificación en la base de datos
+        const notificacionGuardada = await prisma.notificaciones.create({
+          data: {
+            titulo: `Nuevo aviso: ${titulo}`,
+            mensaje: descripcion,
+            tipo: "aviso",
+            hospital_id: hospital.id,
+            referencia_id: nuevoAviso.id,
+            referencia_tipo: "aviso",
+            leida: false,
+          },
+        });
+
+        // Enviar notificación SSE
+        await notificarClientes(hospital.id, {
+          id: Number(notificacionGuardada.id),
+          titulo: `Nuevo aviso: ${titulo}`,
+          mensaje: descripcion,
+          tipo: "aviso",
+          hospital_id: Number(hospital.id),
+          leida: false,
+          referencia_id: Number(nuevoAviso.id),
+          referencia_tipo: "aviso",
+          created_at: notificacionGuardada.created_at.toISOString(),
+        });
+      }
+    }
 
     return NextResponse.json(avisoFormateado, { status: 201 });
   } catch (error) {

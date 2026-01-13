@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notificarClientes } from "../../notificaciones/stream/route";
 
 export async function GET(
   request: Request,
@@ -62,6 +63,12 @@ export async function PUT(
     const body = await request.json();
     const { titulo, descripcion, fecha, publicado } = body;
 
+    // Obtener el estado actual del aviso antes de actualizar
+    const avisoAnterior = await prisma.avisos.findUnique({
+      where: { id: BigInt(id) },
+      select: { publicado: true },
+    });
+
     const avisoActualizado = await prisma.avisos.update({
       where: {
         id: BigInt(id),
@@ -97,6 +104,43 @@ export async function PUT(
         nombre_completo: `${avisoActualizado.usuarios.nombres} ${avisoActualizado.usuarios.apellidos}`,
       } : null,
     };
+
+    // Si se acaba de publicar (pasó de false a true), enviar notificación SSE a todos los hospitales
+    if (publicado === true && avisoAnterior && !avisoAnterior.publicado) {
+      // Obtener todos los hospitales
+      const hospitales = await prisma.hospitales.findMany({
+        select: { id: true },
+      });
+
+      // Crear notificación y enviar SSE a cada hospital
+      for (const hospital of hospitales) {
+        // Guardar notificación en la base de datos
+        const notificacionGuardada = await prisma.notificaciones.create({
+          data: {
+            titulo: `Nuevo aviso: ${avisoActualizado.titulo}`,
+            mensaje: avisoActualizado.descripcion,
+            tipo: "aviso",
+            hospital_id: hospital.id,
+            referencia_id: avisoActualizado.id,
+            referencia_tipo: "aviso",
+            leida: false,
+          },
+        });
+
+        // Enviar notificación SSE
+        await notificarClientes(hospital.id, {
+          id: Number(notificacionGuardada.id),
+          titulo: `Nuevo aviso: ${avisoActualizado.titulo}`,
+          mensaje: avisoActualizado.descripcion,
+          tipo: "aviso",
+          hospital_id: Number(hospital.id),
+          leida: false,
+          referencia_id: Number(avisoActualizado.id),
+          referencia_tipo: "aviso",
+          created_at: notificacionGuardada.created_at.toISOString(),
+        });
+      }
+    }
 
     return NextResponse.json(avisoFormateado);
   } catch (error) {

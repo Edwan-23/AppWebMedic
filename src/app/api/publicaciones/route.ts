@@ -240,35 +240,33 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Crear notificación para cada hospital
-      const notificaciones = otrosHospitales.map((h: any) => ({
-        titulo: `Nueva publicación: ${medicamento}`,
-        mensaje: `${hospital} ha publicado ${tipo.toLowerCase()}: ${medicamento} (${body.cantidad} unidades disponibles)`,
-        tipo: "publicacion",
-        hospital_id: h.id,
-        referencia_id: nuevaPublicacion.id,
-        referencia_tipo: "publicacion"
-      }));
-
-      if (notificaciones.length > 0) {
-        await prisma.notificaciones.createMany({
-          data: notificaciones
-        });
-        
-        // Notificar a cada hospital vía SSE
-        for (const notif of notificaciones) {
-          await notificarClientes(notif.hospital_id, {
-            id: 0, // El ID real no se conoce con createMany
-            titulo: notif.titulo,
-            mensaje: notif.mensaje,
-            tipo: notif.tipo,
-            hospital_id: Number(notif.hospital_id),
-            leida: false,
-            referencia_id: Number(nuevaPublicacion.id),
+      // Crear notificación individualmente para cada hospital y enviar SSE
+      for (const hospital of otrosHospitales) {
+        // Guardar notificación en la base de datos
+        const notificacionGuardada = await prisma.notificaciones.create({
+          data: {
+            titulo: `Nueva publicación: ${medicamento}`,
+            mensaje: `${hospital} ha publicado ${tipo.toLowerCase()}: ${medicamento} (${body.cantidad} unidades disponibles)`,
+            tipo: "publicacion",
+            hospital_id: hospital.id,
+            referencia_id: nuevaPublicacion.id,
             referencia_tipo: "publicacion",
-            created_at: new Date()
-          });
-        }
+            leida: false,
+          },
+        });
+
+        // Enviar notificación SSE con el ID
+        await notificarClientes(hospital.id, {
+          id: Number(notificacionGuardada.id),
+          titulo: notificacionGuardada.titulo,
+          mensaje: notificacionGuardada.mensaje,
+          tipo: notificacionGuardada.tipo,
+          hospital_id: Number(hospital.id),
+          leida: false,
+          referencia_id: Number(nuevaPublicacion.id),
+          referencia_tipo: "publicacion",
+          created_at: notificacionGuardada.created_at.toISOString(),
+        });
       }
     } catch (notifError) {
       console.error("Error al crear notificaciones:", notifError);
