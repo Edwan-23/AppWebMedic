@@ -17,7 +17,14 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop appweb-hospitales",
+    "pm2:restart": "pm2 restart appweb-hospitales",
+    "pm2:delete": "pm2 delete appweb-hospitales",
+    "pm2:logs": "pm2 logs appweb-hospitales",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 status"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

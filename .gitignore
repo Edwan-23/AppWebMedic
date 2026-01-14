@@ -38,5 +38,10 @@ next-env.d.ts
 # prisma
 /src/generated/prisma
 
+# PM2
+logs/
+.pm2/
+*.log
+
 # GitHub Copilot
 .github/copilot-instructions.md
