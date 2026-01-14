@@ -202,7 +202,7 @@ model solicitudes {
 
 model tipo_medicamento {
   id           BigInt         @id @default(autoincrement())
-  nombre       String         @unique @db.VarChar(10)
+  nombre       String         @unique @db.VarChar(15)
   descripcion  String?
   medicamentos medicamentos[]
 }

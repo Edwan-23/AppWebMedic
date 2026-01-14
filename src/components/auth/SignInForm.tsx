@@ -4,6 +4,7 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -103,7 +104,28 @@ export default function SignInForm() {
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+      {/* Logo y fondo para móvil */}
+      <div className="lg:hidden relative w-full py-5 bg-brand-150 dark:bg-white/5">
+        <div className="absolute inset-0 overflow-hidden">
+          <Image
+            src="/images/shape/grid-01.svg"
+            alt="Background"
+            fill
+            className="object-cover opacity-90"
+          />
+        </div>
+        <div className="relative z-20 flex justify-center">
+          <Image
+            width={150}
+            height={40}
+            src="/images/logo/auth-logo2 (2).svg"
+            alt="Logo"
+            className="mx-auto"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:justify-center flex-1 w-full max-w-md mx-auto px-6 lg:px-0 pt-6 lg:pt-0">
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">

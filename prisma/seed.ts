@@ -1,7 +1,21 @@
+import "dotenv/config";
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Crear pool de conexiones de PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Crear adaptador de Prisma
+const adapter = new PrismaPg(pool);
+
+// Instanciar PrismaClient con el adaptador
+const prisma = new PrismaClient({
+  adapter,
+});
 
 // Función para hashear contraseñas
 async function hashPassword(password: string): Promise<string> {
@@ -7466,4 +7480,5 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
+        await pool.end();
     });
