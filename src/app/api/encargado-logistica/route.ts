@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const hospitalId = searchParams.get("hospital_id");
 
-    if (!hospitalId) {
+    if (!hospitalId || hospitalId === "null" || hospitalId === "undefined") {
       return NextResponse.json(
         { error: "hospital_id es requerido" },
         { status: 400 }

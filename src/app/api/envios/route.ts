@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Si se filtra por hospital, traer envíos de solicitudes O donaciones relacionadas con ese hospital
-    if (hospitalId) {
+    if (hospitalId && hospitalId !== "null" && hospitalId !== "undefined") {
       where.OR = [
         {
           solicitudes: {

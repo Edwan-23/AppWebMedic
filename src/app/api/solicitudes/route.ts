@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     // Filtro por hospital (mis solicitudes)
-    if (hospitalId) {
+    if (hospitalId && hospitalId !== "null" && hospitalId !== "undefined") {
       where.hospital_id = BigInt(hospitalId);
     }
 
     // Filtro por hospital de publicación (pedidos recibidos)
-    if (publicacionHospitalId) {
+    if (publicacionHospitalId && publicacionHospitalId !== "null" && publicacionHospitalId !== "undefined") {
       where.publicaciones = {
         hospital_id: BigInt(publicacionHospitalId)
       };

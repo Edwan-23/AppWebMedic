@@ -241,14 +241,14 @@ export async function POST(request: NextRequest) {
       });
 
       // Crear notificación individualmente para cada hospital y enviar SSE
-      for (const hospital of otrosHospitales) {
+      for (const otroHospital of otrosHospitales) {
         // Guardar notificación en la base de datos
         const notificacionGuardada = await prisma.notificaciones.create({
           data: {
             titulo: `Nueva publicación: ${medicamento}`,
             mensaje: `${hospital} ha publicado ${tipo.toLowerCase()}: ${medicamento} (${body.cantidad} unidades disponibles)`,
             tipo: "publicacion",
-            hospital_id: hospital.id,
+            hospital_id: otroHospital.id,
             referencia_id: nuevaPublicacion.id,
             referencia_tipo: "publicacion",
             leida: false,
@@ -256,12 +256,12 @@ export async function POST(request: NextRequest) {
         });
 
         // Enviar notificación SSE con el ID
-        await notificarClientes(hospital.id, {
+        await notificarClientes(otroHospital.id, {
           id: Number(notificacionGuardada.id),
           titulo: notificacionGuardada.titulo,
           mensaje: notificacionGuardada.mensaje,
           tipo: notificacionGuardada.tipo,
-          hospital_id: Number(hospital.id),
+          hospital_id: Number(otroHospital.id),
           leida: false,
           referencia_id: Number(nuevaPublicacion.id),
           referencia_tipo: "publicacion",

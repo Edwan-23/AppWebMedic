@@ -92,7 +92,7 @@ export default function ListaPedidos() {
         ...(searchTerm && { search: searchTerm }),
         ...(filtroEstado && { estado: filtroEstado }),
         // Filtrar por publicaciones del hospital del usuario (pedidos recibidos)
-        publicacion_hospital_id: usuario.hospital_id.toString()
+        ...(usuario.hospital_id && { publicacion_hospital_id: usuario.hospital_id.toString() })
       });
 
       const res = await fetch(`/api/solicitudes?${params}`);

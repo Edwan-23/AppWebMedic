@@ -79,7 +79,7 @@ export default function ListaSolicitudes() {
         limit: "10",
         ...(searchTerm && { search: searchTerm }),
         ...(filtroEstado && { estado: filtroEstado }),
-        ...(misSolicitudes && { hospital_id: usuario.hospital_id.toString() })
+        ...(misSolicitudes && usuario.hospital_id && { hospital_id: usuario.hospital_id.toString() })
       });
 
       const res = await fetch(`/api/solicitudes?${params}`);

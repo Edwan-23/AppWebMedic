@@ -653,7 +653,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           <select
             value={estadoFilter}
             onChange={(e) => { setEstadoFilter(e.target.value); setPage(1); }}
-            className="px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            className="px-3 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
           >
             <option value="">Todos los estados</option>
             {estadosPublicacion.map(estado => (

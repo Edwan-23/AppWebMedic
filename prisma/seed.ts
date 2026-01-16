@@ -6,7 +6,7 @@ import * as bcrypt from 'bcryptjs';
 
 // Crear pool de conexiones de PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
 });
 
 // Crear adaptador de Prisma
@@ -14,7 +14,7 @@ const adapter = new PrismaPg(pool);
 
 // Instanciar PrismaClient con el adaptador
 const prisma = new PrismaClient({
-  adapter,
+    adapter,
 });
 
 // Función para hashear contraseñas
@@ -7156,7 +7156,7 @@ async function seedRoles() {
 
     await prisma.roles.upsert({
         where: { nombre: 'Estandar' },
-        update: {}, 
+        update: {},
         create: {
             nombre: 'Estandar'
         }
@@ -7164,7 +7164,7 @@ async function seedRoles() {
 
     await prisma.roles.upsert({
         where: { nombre: 'Logistica' },
-        update: {}, 
+        update: {},
         create: {
             nombre: 'Logistica'
         }
@@ -7188,7 +7188,7 @@ async function seedTipoMedicamento() {
 
     await prisma.tipo_medicamento.upsert({
         where: { nombre: 'Cápsulas' },
-        update: {}, 
+        update: {},
         create: {
             nombre: 'Cápsulas',
             descripcion: 'Medicamento en forma de cápsulas'
@@ -7224,7 +7224,7 @@ async function seedTipoMedicamento() {
 
     await prisma.tipo_medicamento.upsert({
         where: { nombre: 'Suspensiones' },
-        update: {}, 
+        update: {},
         create: {
             nombre: 'Suspensiones',
             descripcion: 'Medicamento en forma de suspensiones'
@@ -7282,6 +7282,24 @@ async function seedTipoMedicamento() {
         create: {
             nombre: 'Gotas',
             descripcion: 'Medicamento en forma de gotas'
+        }
+    });
+
+    await prisma.tipo_medicamento.upsert({
+        where: { nombre: 'Frascos' },
+        update: {},
+        create: {
+            nombre: 'Frascos',
+            descripcion: 'Medicamento en forma de frascos'
+        }
+    });
+
+    await prisma.tipo_medicamento.upsert({
+        where: { nombre: 'Inhalador' },
+        update: {},
+        create: {
+            nombre: 'Inhalador',
+            descripcion: 'Medicamento en forma de inhalador'
         }
     });
 
@@ -7444,13 +7462,36 @@ async function seedUsuarios() {
     console.log('✅ Usuario master creado');
 }
 
+// 14. Hospital
+
+async function seedHospital() {
+    console.log('Creando hospital...');
+    await prisma.hospitales.upsert({
+        where: { rut: '0001' },
+        update: {},
+        create: {
+            rut: '0001',
+            nombre: 'Sistema Hospitalario',
+            direccion: 'Av 123 # 45 - 67',
+            telefono: '6012345678',
+            celular: '3001234567',
+            correo: 'admin@sistema.com',
+            departamento_id: 11,
+            municipio_id: 107,
+            director: 'Administrador',
+            estado_id: 1
+        }
+    });
+    console.log('✅ Hospital creado');
+}
+
 // Función principal
 async function main() {
     console.log('🌱 Iniciando seed de base de datos...\n');
 
     try {
         // Orden de ejecución 
-        
+
         await seedEstadoBase();
         await seedEstadoEnvio();
         await seedEstadoPublicacion();
@@ -7462,8 +7503,9 @@ async function main() {
         await seedTransporte();
         await seedUnidadDispensacion();
         await seedDepartamentos();
-        await seedMunicipios(); 
-        await seedUsuarios(); 
+        await seedMunicipios();
+        await seedUsuarios();
+        await seedHospital();
 
         console.log('\nSeed completado exitosamente!');
     } catch (error) {

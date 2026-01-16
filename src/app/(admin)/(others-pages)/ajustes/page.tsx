@@ -105,7 +105,7 @@ export default function AjustesPage() {
                         </svg>
                         <div>
                             <h5 className="font-medium text-yellow-800 dark:text-yellow-300">
-                                Restringido
+                                Precaución
                             </h5>
                             <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-400">
                                 Los cambios realizados en los módulos afectarán los datos del sistema.
@@ -119,7 +119,7 @@ export default function AjustesPage() {
                         Panel de Administración
                     </h3>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Gestiona todos los aspectos del sistema desde este panel centralizado.
+                        Gestione algunos aspectos del sistema desde los diferentes módulos disponibles.
                     </p>
                 </div>
 
