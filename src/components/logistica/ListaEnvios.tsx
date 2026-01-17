@@ -1017,7 +1017,7 @@ export default function ListaEnvios() {
                             </svg>
                             <div className="flex-1">
                               <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                                Código PIN de Entrega
+                                Código PIN
                               </h4>
                               <p className="text-sm text-green-700 dark:text-green-300 mb-3">
                                 Entregar este código para confirmar la recepción del envío.
@@ -1130,7 +1130,7 @@ export default function ListaEnvios() {
                       value={formulario.nombre}
                       onChange={(e) => actualizarCampo("nombre", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-                      placeholder="Nombre del encargado"
+                      placeholder="Nombres del encargado"
                     />
                   </div>
 
@@ -1143,7 +1143,7 @@ export default function ListaEnvios() {
                       value={formulario.apellido}
                       onChange={(e) => actualizarCampo("apellido", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-                      placeholder="Apellido del encargado"
+                      placeholder="Apellidos del encargado"
                     />
                   </div>
 
@@ -1259,7 +1259,7 @@ export default function ListaEnvios() {
                           Solicita el PIN de entrega
                         </h4>
                         <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                          Quien recibe debe proporcionarle el PIN de 4 dígitos que le fue asignado.
+                          Quien entrega debe proporcionarle el PIN de 4 dígitos asignado.
                         </p>
                       </div>
                     </div>

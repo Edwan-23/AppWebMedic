@@ -395,13 +395,13 @@ export default function ListaPedidos() {
                     {/* Medicamento */}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {pedido.medicamentos?.nombre || "Medicamento no especificado"}
+                        {pedido.medicamentos?.nombre || "Medicamento no especificado"} - {pedido.hospitales?.nombre || "N/A"}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Ref: {pedido.medicamentos?.referencia || "N/A"}
                         {pedido.medicamentos?.tipo_medicamento && (
                           <span className="ml-2">
-                            • {pedido.medicamentos.tipo_medicamento.nombre}
+                            • {pedido.medicamentos.tipo_medicamento.nombre} • Cantidad total: {pedido.publicaciones?.cantidad}
                           </span>
                         )}
                       </p>
@@ -419,7 +419,7 @@ export default function ListaPedidos() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span>Recibido: {formatearFecha(pedido.created_at)}</span>
+                      <span>Solicitado: {formatearFecha(pedido.created_at)}</span>
                     </div>
                   </div>
 

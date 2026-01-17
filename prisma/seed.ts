@@ -7463,7 +7463,6 @@ async function seedUsuarios() {
 }
 
 // 14. Hospital
-
 async function seedHospital() {
     console.log('Creando hospital...');
     await prisma.hospitales.upsert({

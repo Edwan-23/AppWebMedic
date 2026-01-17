@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
           const nuevaNotificacion = await prisma.notificaciones.create({
             data: {
               titulo: "Nueva solicitud de medicamento",
-              mensaje: `${hospitalSolicitante} ha solicitado tu publicación de ${medicamento}`,
+              mensaje: `${hospitalSolicitante} ha solicitado la publicación de ${medicamento}`,
               tipo: "solicitud",
               hospital_id: publicacion.hospital_id,
               referencia_id: nuevaSolicitud.id,
