@@ -29,11 +29,12 @@ export default function SignInForm() {
         if (response.ok) {
           const data = await response.json();
           if (data.usuario) {
-            // sesión activa, redirigir al dashboard
+            // sesión activa, redirigir según rol
+            const destino = data.usuario.rol_id === "1" ? "/dashboard" : "/publicaciones";
             toast.info('Sesión activa', {
               description: `Bienvenido de nuevo, ${data.usuario.nombres}`
             });
-            setTimeout(() => router.push('/'), 500);
+            setTimeout(() => router.push(destino), 500);
           }
         }
       } catch (error) {
@@ -88,8 +89,9 @@ export default function SignInForm() {
         description: `Saludos ${data.usuario.nombres}`
       });
 
-      // Redirigir al dashboard (raíz con sesión)
-      setTimeout(() => router.push("/"), 500);
+      // Redirigir según el rol del usuario
+      const destino = data.usuario.rol_id === "1" ? "/dashboard" : "/publicaciones";
+      setTimeout(() => router.push(destino), 500);
 
     } catch (err) {
       setError("Error de conexión. Intente nuevamente.");
@@ -126,6 +128,15 @@ export default function SignInForm() {
       </div>
 
       <div className="flex flex-col lg:justify-center flex-1 w-full max-w-md mx-auto px-6 lg:px-0 pt-6 lg:pt-0">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400 mb-4 w-fit"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Inicio
+        </Link>
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">

@@ -1,24 +1,24 @@
+"use client";
 import { Metadata } from "next";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Políticas de Privacidad | Dashboard Hospitalario",
-  description: "Políticas de privacidad y protección de datos del sistema de gestión de medicamentos",
-};
+
 
 export default function PrivacyPolicy() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-dark rounded-2xl shadow-theme-lg p-8 md:p-12">
-        <Link
-          href="/registro"
+        <button
+          onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400 mb-6"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Volver al registro
-        </Link>
+          Volver
+        </button>
 
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3">
           Políticas de Privacidad

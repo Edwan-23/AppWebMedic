@@ -916,7 +916,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               </div>
 
               <div className="md:col-span-2 lg:col-span-3">
-                <Label>Descripción</Label>
+                <Label>Observación o descripción</Label>
                 <textarea
                   name="descripcion"
                   value={formData.descripcion}

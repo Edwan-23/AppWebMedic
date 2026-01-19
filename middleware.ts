@@ -5,10 +5,10 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rutas públicas | no requieren autenticación
-  const rutasPublicas = ['/sesion', '/registro', '/terminos-condiciones', '/politicas-privacidad'];
+  const rutasPublicas = ['/', '/sesion', '/registro', '/terminos-condiciones', '/politicas-privacidad'];
   
   // Verificar si la ruta actual es pública
-  const esRutaPublica = rutasPublicas.some(ruta => pathname.startsWith(ruta));
+  const esRutaPublica = rutasPublicas.some(ruta => ruta === '/' ? pathname === '/' : pathname.startsWith(ruta));
 
   // Si es ruta pública, permitir acceso
   if (esRutaPublica) {

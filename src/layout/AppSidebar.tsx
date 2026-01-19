@@ -33,7 +33,7 @@ const dashboardItem: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    path: "/",
+    path: "/dashboard",
   },
 ];
 

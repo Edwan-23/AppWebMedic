@@ -85,7 +85,7 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
           />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{nombreCorto}</span>
+        <span className="hidden mr-1 font-medium lg:block text-theme-sm">{nombreCorto}</span>
 
         <svg
           className={`hidden lg:block stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${

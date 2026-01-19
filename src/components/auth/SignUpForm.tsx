@@ -639,7 +639,6 @@ export default function SignUpForm() {
                       Al crear una cuenta, aceptas los{" "}
                       <Link
                         href="/terminos-condiciones"
-                        target="_blank"
                         className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
                       >
                         Términos y Condiciones
@@ -647,7 +646,6 @@ export default function SignUpForm() {
                       y nuestra{" "}
                       <Link
                         href="/politicas-privacidad"
-                        target="_blank"
                         className="text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-500 underline"
                       >
                         Política de Privacidad
