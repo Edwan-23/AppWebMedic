@@ -195,6 +195,76 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const hospitalId = BigInt(id);
+    const body = await request.json();
+
+    // Validar que se envíe estado_id
+    if (!body.estado_id) {
+      return NextResponse.json(
+        { error: "estado_id es requerido" },
+        { status: 400 }
+      );
+    }
+
+    const estadoId = BigInt(body.estado_id);
+
+    // Verificar si el hospital existe
+    const hospital = await (prisma as any).hospitales.findUnique({
+      where: { id: hospitalId },
+    });
+
+    if (!hospital) {
+      return NextResponse.json(
+        { error: "Hospital no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Actualizar estado del hospital
+    const hospitalActualizado = await (prisma as any).hospitales.update({
+      where: { id: hospitalId },
+      data: {
+        estado_id: estadoId,
+      },
+      include: {
+        estado_base: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      {
+        mensaje: "Estado del hospital actualizado correctamente",
+        hospital: {
+          id: hospitalActualizado.id.toString(),
+          estado_id: hospitalActualizado.estado_id.toString(),
+          estado_base: {
+            id: hospitalActualizado.estado_base.id.toString(),
+            nombre: hospitalActualizado.estado_base.nombre,
+          },
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error al actualizar estado del hospital:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

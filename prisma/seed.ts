@@ -244,10 +244,10 @@ async function seedEstadoBase() {
     });
 
     await prisma.estado_base.upsert({
-        where: { nombre: 'Inactivo' },
+        where: { nombre: 'Ausente' },
         update: {},
         create: {
-            nombre: 'Inactivo',
+            nombre: 'Ausente',
             descripcion: 'Entidad inactiva en el sistema'
         }
     });
@@ -258,24 +258,6 @@ async function seedEstadoBase() {
         create: {
             nombre: 'Suspendido',
             descripcion: 'Entidad suspendida temporalmente'
-        }
-    });
-
-    await prisma.estado_base.upsert({
-        where: { nombre: 'Eliminado' },
-        update: {},
-        create: {
-            nombre: 'Eliminado',
-            descripcion: 'Entidad eliminada del sistema'
-        }
-    });
-
-    await prisma.estado_base.upsert({
-        where: { nombre: 'Ausente' },
-        update: {},
-        create: {
-            nombre: 'Ausente',
-            descripcion: 'Entidad temporalmente ausente'
         }
     });
 
@@ -7455,7 +7437,8 @@ async function seedUsuarios() {
             rol_id: 1,
             estado_base_id: 1,
             contrasena: hashedPassword,
-            fecha_nacimiento: new Date('1990-01-01')
+            fecha_nacimiento: new Date('1990-01-01'),
+            ultimo_ingreso: new Date()
         }
     });
 

@@ -209,6 +209,76 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const body = await request.json();
+    const { id } = await context.params;
+    const usuarioId = BigInt(id);
+
+    // Validar que se envíe estado_base_id
+    if (!body.estado_base_id) {
+      return NextResponse.json(
+        { error: "estado_base_id es requerido" },
+        { status: 400 }
+      );
+    }
+
+    const estadoBaseId = BigInt(body.estado_base_id);
+
+    // Verificar si el usuario existe
+    const usuario = await (prisma as any).usuarios.findUnique({
+      where: { id: usuarioId },
+    });
+
+    if (!usuario) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Actualizar estado del usuario
+    const usuarioActualizado = await (prisma as any).usuarios.update({
+      where: { id: usuarioId },
+      data: {
+        estado_base_id: estadoBaseId,
+      },
+      include: {
+        estado_base: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      {
+        mensaje: "Estado del usuario actualizado correctamente",
+        usuario: {
+          id: usuarioActualizado.id.toString(),
+          estado_base_id: usuarioActualizado.estado_base_id.toString(),
+          estado_base: {
+            id: usuarioActualizado.estado_base.id.toString(),
+            nombre: usuarioActualizado.estado_base.nombre,
+          },
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error al actualizar estado del usuario:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }

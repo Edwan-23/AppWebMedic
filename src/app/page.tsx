@@ -184,23 +184,6 @@ export default function HomePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                         {/* Servicio 1 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-
-                            {/* SVG decorativo */}
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/10 -z-0"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 11H5m14 0a2 2 0 012 2v6"
-                                />
-                            </svg>
-
                             {/* Contenido */}
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Gestión de Inventario
@@ -214,16 +197,6 @@ export default function HomePage() {
 
                         {/* Servicio 2 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/50"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Intercambio entre Hospitales
                             </h3>
@@ -235,20 +208,6 @@ export default function HomePage() {
 
                         {/* Servicio 3 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/10"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2 m0-8c1.11 0 2.08.402 2.599 1 M12 8V7m0 1v8m0 0v1m0-1 c-1.11 0-2.08-.402-2.599-1 M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Gestión de Pagos
                             </h3>
@@ -261,20 +220,6 @@ export default function HomePage() {
 
                         {/* Servicio 4 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/10"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M8 7V3m8 4V3m-9 8h10 M5 21h14a2 2 0 002-2V7 a2 2 0 00-2-2H5 a2 2 0 00-2 2v12 a2 2 0 002 2z" />
-                            </svg>
-
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Logística y Envíos
                             </h3>
@@ -287,20 +232,6 @@ export default function HomePage() {
 
                         {/* Servicio 5 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/10"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M15 17h5l-1.405-1.405 A2.032 2.032 0 0118 14.158V11 a6.002 6.002 0 00-4-5.659V5 a2 2 0 10-4 0v.341 C7.67 6.165 6 8.388 6 11v3.159 c0 .538-.214 1.055-.595 1.436L4 17h5 m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Notificaciones en Tiempo Real
                             </h3>
@@ -313,20 +244,6 @@ export default function HomePage() {
 
                         {/* Servicio 6 */}
                         <div className="relative bg-gradient-to-br from-white to-brand-50 dark:from-gray-900 dark:to-gray-800 rounded-xl p-8 shadow-lg overflow-hidden">
-
-                            <svg
-                                className="absolute bottom-0 right-0 w-40 h-40 text-brand-500/10"
-                                fill="none"
-                                stroke="white"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M9 19v-6a2 2 0 00-2-2H5 a2 2 0 00-2 2v6 a2 2 0 002 2h2 a2 2 0 002-2zm0 0V9 a2 2 0 012-2h2 a2 2 0 012 2v10 m-6 0a2 2 0 002 2h2 a2 2 0 002-2m0 0V5 a2 2 0 012-2h2 a2 2 0 012 2v14 a2 2 0 01-2 2h-2 a2 2 0 01-2-2z" />
-                            </svg>
-
                             <h3 className="relative z-10 text-xl font-semibold text-gray-900 dark:text-white mb-3">
                                 Reportes y Análisis
                             </h3>

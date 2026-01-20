@@ -1,8 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Función para obtener la hora actual de Bogotá, Colombia (UTC-5)
+function obtenerHoraBogota(): Date {
+  const ahora = new Date();
+  // Convertir a hora de Bogotá (UTC-5)
+  const horaBogota = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  return horaBogota;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    // Obtener los IDs de los estados
+    const estadoActivo = await (prisma as any).estado_base.findFirst({
+      where: { nombre: "Activo" }
+    });
+    const estadoAusente = await (prisma as any).estado_base.findFirst({
+      where: { nombre: "Ausente" }
+    });
+
+    if (!estadoActivo || !estadoAusente) {
+      return NextResponse.json(
+        { error: "Estados no configurados correctamente" },
+        { status: 500 }
+      );
+    }
+
+    // Actualizar usuarios que no han ingresado en más de 30 días
+    const horaBogota = obtenerHoraBogota();
+    const hace30Dias = new Date(horaBogota);
+    hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+    await (prisma as any).usuarios.updateMany({
+      where: {
+        ultimo_ingreso: {
+          lt: hace30Dias,
+          not: null
+        },
+        estado_base_id: estadoActivo.id,
+      },
+      data: {
+        estado_base_id: estadoAusente.id,
+        updated_at: horaBogota
+      }
+    });
+
     // Consulta optimizada con select para traer solo campos necesarios
     const usuarios = await (prisma as any).usuarios.findMany({
       select: {
@@ -15,6 +57,7 @@ export async function GET(request: NextRequest) {
         rol_id: true,
         hospital_id: true,
         estado_base_id: true,
+        ultimo_ingreso: true,
         created_at: true,
         roles: {
           select: {
@@ -40,9 +83,17 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Contar usuarios activos (estado_base_id === 1)
+    // Calcular estadísticas
     const totalActivos = usuarios.filter(
-      (u: any) => u.estado_base_id === BigInt(1)
+      (u: any) => u.estado_base_id === estadoActivo.id
+    ).length;
+
+    const totalAusentes = usuarios.filter(
+      (u: any) => u.estado_base_id === estadoAusente.id
+    ).length;
+
+    const totalSuspendidos = usuarios.filter(
+      (u: any) => u.estado_base?.nombre === "Suspendido"
     ).length;
 
     // Convertir BigInt a string
@@ -56,6 +107,7 @@ export async function GET(request: NextRequest) {
       rol_id: usuario.rol_id?.toString(),
       hospital_id: usuario.hospital_id?.toString(),
       estado_base_id: usuario.estado_base_id?.toString(),
+      ultimo_ingreso: usuario.ultimo_ingreso,
       created_at: usuario.created_at,
       rol: usuario.roles
         ? {
@@ -82,6 +134,8 @@ export async function GET(request: NextRequest) {
         usuarios: usuariosFormateados,
         total: usuariosFormateados.length,
         activos: totalActivos,
+        ausentes: totalAusentes,
+        suspendidos: totalSuspendidos,
       },
       { status: 200 }
     );

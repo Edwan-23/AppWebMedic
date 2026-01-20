@@ -3,8 +3,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // Obtener todos los hospitales
+    // Obtener todos los hospitales activos (no suspendidos)
     const todosLosHospitales = await prisma.hospitales.findMany({
+      where: {
+        OR: [
+          { estado_id: BigInt(1) }, // Activo
+          { estado_id: null }, // Sin estado definido (por compatibilidad)
+        ],
+      },
       select: {
         id: true,
         nombre: true,

@@ -40,6 +40,7 @@ export default function HospitalesPage() {
   const [hospitales, setHospitales] = useState<Hospital[]>([]);
   const [totalHospitales, setTotalHospitales] = useState(0);
   const [totalActivos, setTotalActivos] = useState(0);
+  const [totalSuspendidos, setTotalSuspendidos] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [hospitalSeleccionado, setHospitalSeleccionado] =
     useState<Hospital | null>(null);
@@ -47,10 +48,20 @@ export default function HospitalesPage() {
     id: string;
     nombre: string;
   } | null>(null);
+  const [hospitalASuspender, setHospitalASuspender] = useState<{
+    id: string;
+    nombre: string;
+  } | null>(null);
+  const [hospitalAActivar, setHospitalAActivar] = useState<{
+    id: string;
+    nombre: string;
+  } | null>(null);
 
   const { isOpen: isVerOpen, openModal: openVerModal, closeModal: closeVerModal } = useModal();
   const { isOpen: isEditOpen, openModal: openEditModal, closeModal: closeEditModal } = useModal();
   const { isOpen: isDeleteOpen, openModal: openDeleteModal, closeModal: closeDeleteModal } = useModal();
+  const { isOpen: isSuspendOpen, openModal: openSuspendModal, closeModal: closeSuspendModal } = useModal();
+  const { isOpen: isActivateOpen, openModal: openActivateModal, closeModal: closeActivateModal } = useModal();
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -98,6 +109,7 @@ export default function HospitalesPage() {
         setHospitales(data.hospitales);
         setTotalHospitales(data.total);
         setTotalActivos(data.activos);
+        setTotalSuspendidos(data.suspendidos);
       } else {
         toast.error(data.error || "Error al cargar hospitales");
       }
@@ -249,6 +261,66 @@ export default function HospitalesPage() {
     }
   };
 
+  const handleSuspender = (id: string, nombre: string) => {
+    setHospitalASuspender({ id, nombre });
+    openSuspendModal();
+  };
+
+  const confirmarSuspender = async () => {
+    if (!hospitalASuspender) return;
+
+    try {
+      const response = await fetch(`/api/hospitales/${hospitalASuspender.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado_id: "3" }), // Estado Suspendido
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al suspender hospital");
+      }
+
+      toast.success("Hospital suspendido exitosamente");
+      closeSuspendModal();
+      setHospitalASuspender(null);
+      closeEditModal();
+      cargarHospitales();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al suspender hospital");
+    }
+  };
+
+  const handleActivar = (id: string, nombre: string) => {
+    setHospitalAActivar({ id, nombre });
+    openActivateModal();
+  };
+
+  const confirmarActivar = async () => {
+    if (!hospitalAActivar) return;
+
+    try {
+      const response = await fetch(`/api/hospitales/${hospitalAActivar.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado_id: "1" }), // Estado Activo
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al activar hospital");
+      }
+
+      toast.success("Hospital activado exitosamente");
+      closeActivateModal();
+      setHospitalAActivar(null);
+      closeEditModal();
+      cargarHospitales();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al activar hospital");
+    }
+  };
+
   if (!usuarioActual || usuarioActual.rol_id !== "1") {
     return null;
   }
@@ -292,25 +364,19 @@ export default function HospitalesPage() {
       {/* Tarjetas de estadísticas */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-800/50">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Hospitales
-            </p>
-            <p className="mt-2 text-3xl font-bold text-gray-800 dark:text-white">
-              {totalHospitales}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-800/50">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Hospitales Activos
+                Total Hospitales
               </p>
               <p className="mt-2 text-3xl font-bold text-gray-800 dark:text-white">
-                {totalActivos}
+                {totalHospitales}
               </p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center dark:bg-brand-900/30">
+              <svg className="h-10 w-10 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
             </div>
           </div>
         </div>
@@ -319,11 +385,34 @@ export default function HospitalesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Hospitales Inactivos
+                Activos
               </p>
-              <p className="mt-2 text-3xl font-bold text-gray-800 dark:text-white">
-                {totalHospitales - totalActivos}
+              <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
+                {totalActivos}
               </p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center dark:bg-green-900/30">
+              <svg className="h-10 w-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Suspendidos
+              </p>
+              <p className="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">
+                {totalSuspendidos}
+              </p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center dark:bg-red-900/30">
+              <svg className="h-10 w-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
             </div>
           </div>
         </div>
@@ -752,7 +841,27 @@ export default function HospitalesPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="mt-6 flex justify-between gap-3">
+            <div>
+              {hospitalSeleccionado && hospitalSeleccionado.rut !== "0001" && (
+                hospitalSeleccionado.estado_base?.id === "3" ? (
+                  <button
+                    onClick={() => handleActivar(hospitalSeleccionado.id, hospitalSeleccionado.nombre)}
+                    className="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:border-green-700 dark:bg-gray-800 dark:text-green-400 dark:hover:bg-green-900/20"
+                  >
+                    Activar Hospital
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSuspender(hospitalSeleccionado.id, hospitalSeleccionado.nombre)}
+                    className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    Suspender Hospital
+                  </button>
+                )
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
             <button
               onClick={closeEditModal}
               className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -767,6 +876,7 @@ export default function HospitalesPage() {
             </button>
           </div>
           </div>
+          </div>
         </div>
       </Modal>
 
@@ -777,6 +887,33 @@ export default function HospitalesPage() {
         onConfirm={confirmarEliminar}
         title="Eliminar Hospital"
         message={`¿Está seguro de que desea eliminar el hospital <b>${hospitalAEliminar?.nombre}</b>? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Modal Confirmar Suspensión */}
+      <ConfirmModal
+        isOpen={isSuspendOpen}
+        onClose={closeSuspendModal}
+        onConfirm={confirmarSuspender}
+        title="Suspender Hospital"
+        message={`¿Está seguro de suspender el hospital <b>${hospitalASuspender?.nombre}</b>? El hospital no aparecerá en la lista de registro de usuarios.`}
+        confirmText="Suspender"
+        cancelText="Cancelar"
+        variant="warning"
+      />
+
+      {/* Modal Confirmar Activación */}
+      <ConfirmModal
+        isOpen={isActivateOpen}
+        onClose={closeActivateModal}
+        onConfirm={confirmarActivar}
+        title="Activar Hospital"
+        message={`¿Está seguro de activar el hospital <b>${hospitalAActivar?.nombre}</b>? El hospital volverá a estar disponible en la lista de registro.`}
+        confirmText="Activar"
+        cancelText="Cancelar"
+        variant="info"
       />
     </div>
   );

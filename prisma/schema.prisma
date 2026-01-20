@@ -234,6 +234,7 @@ model usuarios {
   hospital_id                BigInt?
   estado_base_id             BigInt?
   contrasena                 String
+  ultimo_ingreso             DateTime?                   @db.Timestamp(6)
   created_at                 DateTime?                   @default(now()) @db.Timestamp(6)
   updated_at                 DateTime?                   @default(now()) @db.Timestamp(6)
   fecha_nacimiento           DateTime?                   @db.Date

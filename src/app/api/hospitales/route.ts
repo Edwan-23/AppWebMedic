@@ -65,11 +65,15 @@ export async function GET() {
     const activos = hospitalesFormateados.filter(
       (h: any) => h.estado_base?.nombre === "Activo"
     ).length;
+    const suspendidos = hospitalesFormateados.filter(
+      (h: any) => h.estado_base?.nombre === "Suspendido"
+    ).length;
 
     return NextResponse.json({
       hospitales: hospitalesFormateados,
       total,
       activos,
+      suspendidos,
     });
   } catch (error) {
     console.error("Error al obtener hospitales:", error);

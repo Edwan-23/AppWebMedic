@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
+// Función para obtener la hora actual de Bogotá, Colombia (UTC-5)
+function obtenerHoraBogota(): Date {
+  const ahora = new Date();
+  // Convertir a hora de Bogotá (UTC-5)
+  const horaBogota = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  return horaBogota;
+}
+
 // Extender el schema para incluir el campo recordar
 const inicioSesionConRecordarSchema = inicioSesionSchema.extend({
   recordar: z.boolean().optional().default(false)
@@ -49,10 +57,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si el usuario está activo
-    if (usuario.estado_base_id !== BigInt(1)) {
+    // Verificar si el usuario está suspendido (solo el estado Suspendido con id 3 impide el ingreso)
+    if (usuario.estado_base_id === BigInt(3)) {
       return NextResponse.json(
-        { error: "Usuario inactivo. Contacte al administrador" },
+        { error: "Usuario suspendido. Contacte al administrador" },
         { status: 403 }
       );
     }
@@ -66,6 +74,23 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Actualizar último ingreso del usuario y estado si estaba Ausente
+    const horaBogota = obtenerHoraBogota();
+    const datosActualizar: any = {
+      ultimo_ingreso: horaBogota,
+      updated_at: horaBogota
+    };
+
+    // Si el usuario estaba Ausente (id 2), cambiarlo a Activo (id 1)
+    if (usuario.estado_base_id && usuario.estado_base_id.toString() === '2') {
+      datosActualizar.estado_base_id = BigInt(1);
+    }
+
+    await (prisma as any).usuarios.update({
+      where: { id: usuario.id },
+      data: datosActualizar
+    });
 
     // Preparar datos del usuario (sin contraseña y con BigInt convertidos)
     const datosUsuario = {
