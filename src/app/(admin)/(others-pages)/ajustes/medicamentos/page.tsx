@@ -7,6 +7,7 @@ import { PencilIcon, TrashBinIcon, PlusIcon } from "@/icons/index";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import Select from "@/components/form/Select";
 
 interface Medicamento {
   id: string;
@@ -531,20 +532,12 @@ export default function MedicamentosPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Tipo de Medicamento
                 </label>
-                <select
+                <Select
                   value={formData.tipo_medicamento_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tipo_medicamento_id: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">Seleccione un tipo</option>
-                  {tiposMedicamentos.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, tipo_medicamento_id: value })}
+                  options={tiposMedicamentos.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
+                  placeholder="Seleccione un tipo"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -564,20 +557,12 @@ export default function MedicamentosPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Medida
                 </label>
-                <select
+                <Select
                   value={formData.medida_medicamento_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, medida_medicamento_id: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">Seleccione una medida</option>
-                  {medidasMedicamentos.map((medida) => (
-                    <option key={medida.id} value={medida.id}>
-                      {medida.nombre}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, medida_medicamento_id: value })}
+                  options={medidasMedicamentos.map(medida => ({ value: String(medida.id), label: medida.nombre }))}
+                  placeholder="Seleccione una medida"
+                />
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -656,20 +641,12 @@ export default function MedicamentosPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Tipo de Medicamento
                 </label>
-                <select
+                <Select
                   value={formData.tipo_medicamento_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tipo_medicamento_id: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">Seleccione un tipo</option>
-                  {tiposMedicamentos.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, tipo_medicamento_id: value })}
+                  options={tiposMedicamentos.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
+                  placeholder="Seleccione un tipo"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -688,20 +665,12 @@ export default function MedicamentosPage() {
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Medida
                 </label>
-                <select
+                <Select
                   value={formData.medida_medicamento_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, medida_medicamento_id: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">Seleccione una medida</option>
-                  {medidasMedicamentos.map((medida) => (
-                    <option key={medida.id} value={medida.id}>
-                      {medida.nombre}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, medida_medicamento_id: value })}
+                  options={medidasMedicamentos.map(medida => ({ value: String(medida.id), label: medida.nombre }))}
+                  placeholder="Seleccione una medida"
+                />
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">

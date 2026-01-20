@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import Select from "@/components/form/Select";
 
 interface Medicamento {
   id: number;
@@ -502,18 +503,12 @@ export default function ListaPedidos() {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Método de transporte <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <Select
                             value={formularios[pedido.id].transporte_id}
-                            onChange={(e) => actualizarFormulario(pedido.id, "transporte_id", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-                          >
-                            <option value="">Seleccionar transporte</option>
-                            {transportes.map((transporte) => (
-                              <option key={transporte.id} value={transporte.id}>
-                                {transporte.nombre}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(value) => actualizarFormulario(pedido.id, "transporte_id", value)}
+                            options={transportes.map(transporte => ({ value: String(transporte.id), label: transporte.nombre }))}
+                            placeholder="Seleccionar transporte"
+                          />
                         </div>
 
                         {/* Fecha de recolección */}
@@ -548,18 +543,12 @@ export default function ListaPedidos() {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Estado de envío <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <Select
                             value={formularios[pedido.id].estado_envio_id}
-                            onChange={(e) => actualizarFormulario(pedido.id, "estado_envio_id", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-                          >
-                            <option value="">Seleccionar estado</option>
-                            {estadosEnvio.map((estado) => (
-                              <option key={estado.id} value={estado.id}>
-                                {estado.estado}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(value) => actualizarFormulario(pedido.id, "estado_envio_id", value)}
+                            options={estadosEnvio.map(estado => ({ value: String(estado.id), label: estado.estado || "" }))}
+                            placeholder="Seleccionar estado"
+                          />
                         </div>
                       </div>
 

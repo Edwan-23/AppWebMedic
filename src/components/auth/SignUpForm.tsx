@@ -2,6 +2,7 @@
 import Checkbox from "@/components/form/input/Checkbox";
 import Label from "@/components/form/Label";
 import DatePicker from "@/components/form/date-picker";
+import Select from "@/components/form/Select";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
@@ -43,7 +44,7 @@ export default function SignUpForm() {
     apellidos: useRef<HTMLInputElement>(null),
     cedula: useRef<HTMLInputElement>(null),
     fecha_nacimiento: useRef<HTMLDivElement>(null),
-    sexo: useRef<HTMLSelectElement>(null),
+    sexo: useRef<HTMLDivElement>(null),
     correo_corporativo: useRef<HTMLInputElement>(null),
     celular: useRef<HTMLInputElement>(null),
     numero_tarjeta_profesional: useRef<HTMLInputElement>(null),
@@ -282,7 +283,6 @@ export default function SignUpForm() {
   };
 
   const inputClasses = "h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-2 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800";
-  const selectClasses = "h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 pr-11 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800";
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
@@ -403,23 +403,22 @@ export default function SignUpForm() {
                   </div>
                 </div>
 
-                <div>
+                <div ref={formRefs.sexo}>
                   <Label>
                     Sexo <span className="text-error-500">*</span>
                   </Label>
-                  <select
-                    ref={formRefs.sexo}
+                  <Select
                     name="sexo"
                     value={formData.sexo}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, sexo: value }))}
+                    options={[
+                      { value: "Hombre", label: "Hombre" },
+                      { value: "Mujer", label: "Mujer" },
+                      { value: "Otro", label: "Otro" }
+                    ]}
+                    placeholder="Seleccione..."
                     required
-                    className={selectClasses}
-                  >
-                    <option value="">Seleccione...</option>
-                    <option value="Hombre">Hombre</option>
-                    <option value="Mujer">Mujer</option>
-                    <option value="Otro">Otro</option>
-                  </select>
+                  />
                   {erroresValidacion.sexo && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.sexo}</p>
                   )}
@@ -471,7 +470,7 @@ export default function SignUpForm() {
                 </div>
 
                 <div>
-                  <Label>Número de Tarjeta Profesional</Label>
+                  <Label>Tarjeta Profesional</Label>
                   <input
                     type="text"
                     name="numero_tarjeta_profesional"
@@ -480,6 +479,12 @@ export default function SignUpForm() {
                     placeholder="TP-12345"
                     className={inputClasses}
                   />
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span>Después de completar el registro, se validará su tarjeta profesional en Rethus para su aprobación y acceso a los servicios.</span>
+                  </p>
                 </div>
 
                 <div className="relative" ref={formRefs.hospital_id}>
@@ -559,6 +564,12 @@ export default function SignUpForm() {
                   {erroresValidacion.hospital_id && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{erroresValidacion.hospital_id}</p>
                   )}
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span>Si no encuentra el hospital en la lista, es porque ya fue registrado por otro usuario en el sistema. <em> Para mas información, contactarse al correo: soporte@hospital.com </em></span>
+                  </p>
                 </div>
 
                 <div>

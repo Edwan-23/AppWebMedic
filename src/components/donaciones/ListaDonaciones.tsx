@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
@@ -748,20 +749,14 @@ export default function ListaDonaciones() {
 
             <div>
               <Label>Hospital Destino *</Label>
-              <select
+              <Select
                 name="hospital_destino_id"
                 value={formData.hospital_destino_id}
-                onChange={handleChange}
+                onChange={(value) => setFormData(prev => ({ ...prev, hospital_destino_id: value }))}
+                options={hospitales.filter(h => h.id !== usuario?.hospital_id).map(hospital => ({ value: String(hospital.id), label: hospital.nombre }))}
+                placeholder="Seleccione un hospital"
                 required
-                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              >
-                <option value="">Seleccione un hospital</option>
-                {hospitales.filter(h => h.id !== usuario?.hospital_id).map(hospital => (
-                  <option key={hospital.id} value={hospital.id}>
-                    {hospital.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -780,20 +775,14 @@ export default function ListaDonaciones() {
 
               <div>
                 <Label>Unidad *</Label>
-                <select
+                <Select
                   name="unidad_dispensacion_id"
                   value={formData.unidad_dispensacion_id}
-                  onChange={handleChange}
+                  onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                  options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                  placeholder="Seleccione"
                   required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                >
-                  <option value="">Seleccione</option>
-                  {unidadesDispensacion.map(unidad => (
-                    <option key={unidad.id} value={unidad.id}>
-                      {unidad.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
 
@@ -854,20 +843,14 @@ export default function ListaDonaciones() {
           <form onSubmit={handleSubmitEnvio} className="space-y-4">
             <div>
               <Label>Transporte *</Label>
-              <select
+              <Select
                 name="transporte_id"
                 value={formEnvio.transporte_id}
-                onChange={handleChangeEnvio}
+                onChange={(value) => setFormEnvio(prev => ({ ...prev, transporte_id: value }))}
+                options={transportes.map(trans => ({ value: String(trans.id), label: trans.nombre }))}
+                placeholder="Seleccione un transporte"
                 required
-                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              >
-                <option value="">Seleccione un transporte</option>
-                {transportes.map(trans => (
-                  <option key={trans.id} value={trans.id}>
-                    {trans.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

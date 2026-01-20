@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
@@ -650,16 +651,15 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           </div>
 
           {/* Filtro Estado */}
-          <select
+          <Select
             value={estadoFilter}
-            onChange={(e) => { setEstadoFilter(e.target.value); setPage(1); }}
-            className="px-3 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-          >
-            <option value="">Todos los estados</option>
-            {estadosPublicacion.map(estado => (
-              <option key={estado.id} value={estado.nombre}>{estado.nombre}</option>
-            ))}
-          </select>
+            onChange={(value) => { setEstadoFilter(value); setPage(1); }}
+            options={[
+              { value: "", label: "Todos los estados" },
+              ...estadosPublicacion.map(estado => ({ value: estado.nombre, label: estado.nombre }))
+            ]}
+            placeholder="Todos los estados"
+          />
 
           {/* Ordenar por Fecha de Creación */}
           <button
@@ -788,18 +788,14 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
               <div>
                 <Label>Tipo de Publicación *</Label>
-                <select
+                <Select
                   name="tipo_publicacion_id"
                   value={formData.tipo_publicacion_id}
-                  onChange={handleChange}
+                  onChange={(value) => setFormData(prev => ({ ...prev, tipo_publicacion_id: value }))}
+                  options={tiposPublicacion.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
+                  placeholder="Seleccione tipo"
                   required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                >
-                  <option value="">Seleccione tipo</option>
-                  {tiposPublicacion.map(tipo => (
-                    <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="relative medicamento-dropdown-container">
@@ -856,20 +852,14 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
               <div>
                 <Label>Unidad de dispensación *</Label>
-                <select
+                <Select
                   name="unidad_dispensacion_id"
                   value={formData.unidad_dispensacion_id}
-                  onChange={handleChange}
+                  onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                  options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                  placeholder="Seleccione una unidad"
                   required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                >
-                  <option value="">Seleccione una unidad</option>
-                  {unidadesDispensacion.map(unidad => (
-                    <option key={unidad.id} value={unidad.id}>
-                      {unidad.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -1375,52 +1365,38 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Medicamento *</Label>
-                  <select
+                  <Select
                     name="medicamento_id"
                     value={formDataEditar.medicamento_id}
-                    onChange={handleChangeEditar}
+                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, medicamento_id: value }))}
+                    options={medicamentos.map(med => ({ value: String(med.id), label: `${med.nombre} - ${med.referencia}` }))}
+                    placeholder="Seleccione un medicamento"
                     required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione un medicamento</option>
-                    {medicamentos.map(med => (
-                      <option key={med.id} value={med.id}>
-                        {med.nombre} - {med.referencia}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Tipo de Publicación *</Label>
-                  <select
+                  <Select
                     name="tipo_publicacion_id"
                     value={formDataEditar.tipo_publicacion_id}
-                    onChange={handleChangeEditar}
+                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, tipo_publicacion_id: value }))}
+                    options={tiposPublicacion.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
+                    placeholder="Seleccione tipo"
                     required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione tipo</option>
-                    {tiposPublicacion.map(tipo => (
-                      <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Estado *</Label>
-                  <select
+                  <Select
                     name="estado_publicacion_id"
                     value={formDataEditar.estado_publicacion_id}
-                    onChange={handleChangeEditar}
+                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, estado_publicacion_id: value }))}
+                    options={estadosPublicacion.map(estado => ({ value: String(estado.id), label: estado.nombre }))}
+                    placeholder="Seleccione estado"
                     required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione estado</option>
-                    {estadosPublicacion.map(estado => (
-                      <option key={estado.id} value={estado.id}>{estado.nombre}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
@@ -1439,20 +1415,14 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Unidad de dispensación *</Label>
-                  <select
+                  <Select
                     name="unidad_dispensacion_id"
                     value={formDataEditar.unidad_dispensacion_id}
-                    onChange={handleChangeEditar}
+                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                    options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                    placeholder="Seleccione una unidad"
                     required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione una unidad</option>
-                    {unidadesDispensacion.map(unidad => (
-                      <option key={unidad.id} value={unidad.id}>
-                        {unidad.nombre}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-span-2">

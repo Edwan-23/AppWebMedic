@@ -365,6 +365,7 @@ export default function UserInfoCard() {
                     name="nombres"
                     defaultValue={formData.nombres}
                     onChange={handleChange}
+                    disabled
                   />
                   {errors.nombres && (
                     <p className="mt-1 text-xs text-red-500">{errors.nombres}</p>
@@ -378,6 +379,7 @@ export default function UserInfoCard() {
                     name="apellidos"
                     defaultValue={formData.apellidos}
                     onChange={handleChange}
+                    disabled
                   />
                   {errors.apellidos && (
                     <p className="mt-1 text-xs text-red-500">{errors.apellidos}</p>
@@ -395,17 +397,17 @@ export default function UserInfoCard() {
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Sexo</Label>
-                  <select
+                  <Select
                     name="sexo"
                     value={formData.sexo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm font-normal text-gray-700 bg-white border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione</option>
-                    <option value="Hombre">Hombre</option>
-                    <option value="Mujer">Mujer</option>
-                    <option value="Otro">Otro</option>
-                  </select>
+                    onChange={(value) => setFormData((prev) => ({ ...prev, sexo: value }))}
+                    options={[
+                      { value: "Hombre", label: "Hombre" },
+                      { value: "Mujer", label: "Mujer" },
+                      { value: "Otro", label: "Otro" }
+                    ]}
+                    placeholder="Seleccione"
+                  />
                   {errors.sexo && (
                     <p className="mt-1 text-xs text-red-500">{errors.sexo}</p>
                   )}
@@ -466,27 +468,29 @@ export default function UserInfoCard() {
                     name="numero_tarjeta_profesional"
                     defaultValue={formData.numero_tarjeta_profesional}
                     onChange={handleChange}
+                    disabled
                   />
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Hospital</Label>
-                  <select
-                    name="hospital_id"
-                    value={formData.hospital_id}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 text-sm font-normal text-gray-700 bg-white border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    <option value="">Seleccione un hospital</option>
-                    {hospitales.map((hospital) => (
-                      <option key={hospital.id} value={hospital.id}>
-                        {hospital.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.hospital_id && (
-                    <p className="mt-1 text-xs text-red-500">{errors.hospital_id}</p>
-                  )}
+                  <Input 
+                    type="text" 
+                    defaultValue={usuario?.hospitales?.nombre || "No especificado"}
+                    disabled
+                  />
+                </div>
+
+                {/* Mensaje informativo */}
+                <div className="col-span-2 mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text text-blue-700 dark:text-blue-300">
+                      <strong>Información:</strong> Si alguno de los datos restringidos es incorrecto, por favor contacte a <a href="mailto:soporte@hospital.com" className="underline font-medium">soporte@hospital.com</a> para realizar los cambios pertinentes.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

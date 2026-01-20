@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import Select from "@/components/form/Select";
 
 interface EncargadoLogistica {
   id: number;
@@ -651,17 +652,19 @@ export default function ListaEnvios() {
         {/* Filtros apilados verticalmente en móvil, horizontal en desktop */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Select de estados */}
-          <select
+          <Select
             value={filtroEstado}
-            onChange={(e) => cambiarFiltroEstado(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
-          >
-            <option value="">Todos los estados</option>
-            <option value="Empaquetando">Empaquetando</option>
-            <option value="En tránsito">En tránsito</option>
-            <option value="Distribución">Distribución</option>
-            <option value="Entregado">Entregado</option>
-          </select>
+            onChange={(value) => cambiarFiltroEstado(value)}
+            options={[
+              { value: "", label: "Todos los estados" },
+              { value: "Empaquetando", label: "Empaquetando" },
+              { value: "En tránsito", label: "En tránsito" },
+              { value: "Distribución", label: "Distribución" },
+              { value: "Entregado", label: "Entregado" }
+            ]}
+            placeholder="Todos los estados"
+            className="w-full sm:w-auto"
+          />
 
           {/* Botones de Recibiendo/Enviando */}
           <div className="flex gap-2">
