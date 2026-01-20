@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import Select from "@/components/form/Select";
+import DatePicker from "@/components/form/date-picker";
 
 interface Medicamento {
   id: number;
@@ -513,28 +514,37 @@ export default function ListaPedidos() {
 
                         {/* Fecha de recolección */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Fecha de recolección <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="date"
-                            value={formularios[pedido.id].fecha_recoleccion}
-                            onChange={(e) => actualizarFormulario(pedido.id, "fecha_recoleccion", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                          <DatePicker
+                            id={`fecha_recoleccion_${pedido.id}`}
+                            label="Fecha de recolección *"
+                            placeholder="Seleccione una fecha"
+                            defaultDate={formularios[pedido.id].fecha_recoleccion || undefined}
+                            minDate={new Date()}
+                            onChange={(selectedDates) => {
+                              if (selectedDates && selectedDates.length > 0) {
+                                const fecha = selectedDates[0];
+                                const fechaFormateada = fecha.toISOString().split('T')[0];
+                                actualizarFormulario(pedido.id, "fecha_recoleccion", fechaFormateada);
+                              }
+                            }}
                           />
                         </div>
 
                         {/* Fecha de entrega estimada */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Fecha de entrega estimada <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="date"
-                            value={formularios[pedido.id].fecha_entrega_estimada}
-                            onChange={(e) => actualizarFormulario(pedido.id, "fecha_entrega_estimada", e.target.value)}
-                            min={formularios[pedido.id].fecha_recoleccion}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                          <DatePicker
+                            id={`fecha_entrega_estimada_${pedido.id}`}
+                            label="Fecha de entrega estimada *"
+                            placeholder="Seleccione una fecha"
+                            defaultDate={formularios[pedido.id].fecha_entrega_estimada || undefined}
+                            minDate={formularios[pedido.id].fecha_recoleccion ? new Date(formularios[pedido.id].fecha_recoleccion) : new Date()}
+                            onChange={(selectedDates) => {
+                              if (selectedDates && selectedDates.length > 0) {
+                                const fecha = selectedDates[0];
+                                const fechaFormateada = fecha.toISOString().split('T')[0];
+                                actualizarFormulario(pedido.id, "fecha_entrega_estimada", fechaFormateada);
+                              }
+                            }}
                           />
                         </div>
 

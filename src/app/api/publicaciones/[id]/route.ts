@@ -167,7 +167,7 @@ export async function PUT(
       dataToUpdate.imagen = body.imagen !== undefined ? body.imagen : undefined;
       dataToUpdate.tipo_publicacion_id = body.tipo_publicacion_id ? BigInt(body.tipo_publicacion_id) : undefined;
       dataToUpdate.cantidad = body.cantidad;
-      dataToUpdate.reg_invima = body.reg_invima || null;
+      dataToUpdate.reg_invima = body.reg_invima ? String(body.reg_invima) : null;
       dataToUpdate.unidad_dispensacion_id = body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : undefined;
       dataToUpdate.fecha_expiracion = fechaExpiracion;
       dataToUpdate.estado_publicacion_id = body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : undefined;
@@ -235,12 +235,80 @@ export async function DELETE(
     const { id } = await params;
     const publicacionId = BigInt(id);
 
+    // Verificar si la publicación existe y obtener su imagen
+    const publicacion = await (prisma as any).publicaciones.findUnique({
+      where: { id: publicacionId },
+      select: {
+        id: true,
+        imagen: true
+      }
+    });
+
+    if (!publicacion) {
+      return NextResponse.json(
+        { error: "Publicación no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar si tiene solicitudes asociadas
+    const solicitudesCount = await (prisma as any).solicitudes.count({
+      where: { publicacion_id: publicacionId }
+    });
+
+    if (solicitudesCount > 0) {
+      // Verificar si alguna solicitud tiene envíos
+      const solicitudesConEnvios = await (prisma as any).solicitudes.findMany({
+        where: { publicacion_id: publicacionId },
+        include: {
+          envio: true
+        }
+      });
+
+      const tieneEnvios = solicitudesConEnvios.some((sol: any) => sol.envio && sol.envio.length > 0);
+
+      if (tieneEnvios) {
+        return NextResponse.json(
+          { 
+            error: "No se puede eliminar la publicación porque tiene envíos asociados",
+            tipo: "envios"
+          },
+          { status: 409 }
+        );
+      } else {
+        return NextResponse.json(
+          { 
+            error: "No se puede eliminar la publicación porque tiene solicitudes asociadas",
+            tipo: "solicitudes"
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // No tiene relaciones, proceder con eliminación completa
     await (prisma as any).publicaciones.delete({
       where: { id: publicacionId }
     });
 
+    // Eliminar imagen física si existe
+    if (publicacion.imagen && publicacion.imagen.startsWith('/images/publicaciones/')) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const imagePath = path.join(process.cwd(), 'public', publicacion.imagen);
+        
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      } catch (imageError) {
+        console.error("Error al eliminar imagen:", imageError);
+        // No fallar la operación si la imagen no se puede eliminar
+      }
+    }
+
     return NextResponse.json(
-      { mensaje: "Publicación eliminada exitosamente" },
+      { mensaje: "Publicación eliminada completamente" },
       { status: 200 }
     );
 
@@ -251,6 +319,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Publicación no encontrada" },
         { status: 404 }
+      );
+    }
+
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { 
+          error: "No se puede eliminar la publicación porque tiene registros relacionados",
+          tipo: "general"
+        },
+        { status: 409 }
       );
     }
 

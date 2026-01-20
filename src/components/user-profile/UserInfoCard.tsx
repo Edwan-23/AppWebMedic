@@ -420,6 +420,7 @@ export default function UserInfoCard() {
                     placeholder="Seleccione una fecha"
                     defaultDate={formData.fecha_nacimiento || undefined}
                     maxDate={new Date()}
+                    position="auto"
                     onChange={(selectedDates) => {
                       if (selectedDates && selectedDates.length > 0) {
                         const fecha = selectedDates[0];

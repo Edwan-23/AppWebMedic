@@ -16,6 +16,7 @@ type PropsType = {
   placeholder?: string;
   maxDate?: DateOption;
   minDate?: DateOption;
+  position?: "auto" | "above" | "below";
 };
 
 export default function DatePicker({
@@ -27,11 +28,12 @@ export default function DatePicker({
   placeholder,
   maxDate,
   minDate,
+  position = "auto",
 }: PropsType) {
   useEffect(() => {
     const flatPickr = flatpickr(`#${id}`, {
       mode: mode || "single",
-      static: true,
+      static: false,
       disableMobile: true,
       monthSelectorType: "dropdown",
       dateFormat: "Y-m-d",
@@ -42,6 +44,8 @@ export default function DatePicker({
       minDate,
       allowInput: false,
       clickOpens: true,
+      position: position,
+      positionElement: undefined,
       onReady: function(selectedDates, dateStr, instance) {
         // Agregar estilos personalizados al selector de mes y año
         const monthSelect = instance.monthsDropdownContainer;
@@ -70,7 +74,7 @@ export default function DatePicker({
         flatPickr.destroy();
       }
     };
-  }, [mode, onChange, id, defaultDate, maxDate, minDate]);
+  }, [mode, onChange, id, defaultDate, maxDate, minDate, position]);
 
   return (
     <div>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import { Modal } from "@/components/ui/modal";
+import ConfirmModal from "@/components/common/ConfirmModal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
 
@@ -87,6 +88,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [mostrarModalSolicitud, setMostrarModalSolicitud] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [publicacionSeleccionada, setPublicacionSeleccionada] = useState<Publicacion | null>(null);
   const [publicacionASolicitar, setPublicacionASolicitar] = useState<Publicacion | null>(null);
   const [metodoEnvio, setMetodoEnvio] = useState<"estandar" | "prioritario">("estandar");
@@ -138,7 +140,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     try {
       // Leer el parámetro directamente de la URL para asegurar sincronización
       const esMisPublicaciones = searchParams.get("mispublicaciones") === "true";
-      
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "10",
@@ -442,6 +444,72 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     }
   };
 
+  const handleEliminarPublicacion = () => {
+    if (!publicacionSeleccionada) return;
+    setMostrarModalEliminar(true);
+  };
+
+  const confirmarEliminarPublicacion = async () => {
+    if (!publicacionSeleccionada) return;
+
+    const loadingToast = toast.loading("Verificando publicación...");
+
+    try {
+      const response = await fetch(`/api/publicaciones/${publicacionSeleccionada.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (response.ok) {
+        toast.success("¡Publicación eliminada!", {
+          description: "La publicación se eliminó completamente.",
+          id: loadingToast
+        });
+        setMostrarModalEliminar(false);
+        cerrarModalEditar();
+        cargarPublicaciones();
+      } else {
+        const error = await response.json();
+        
+        // Mostrar advertencia específica según el tipo de relación
+        if (response.status === 409) {
+          if (error.tipo === "envios") {
+            toast.warning("No se puede eliminar", {
+              description: "Esta publicación tiene envíos asociados. No es posible eliminarla para mantener el historial de envíos.",
+              id: loadingToast,
+              duration: 6000
+            });
+          } else if (error.tipo === "solicitudes") {
+            toast.warning("No se puede eliminar", {
+              description: "Esta publicación tiene solicitudes asociadas. No es posible eliminarla para mantener el historial de solicitudes.",
+              id: loadingToast,
+              duration: 6000
+            });
+          } else {
+            toast.warning("No se puede eliminar", {
+              description: error.error || "Esta publicación tiene registros relacionados.",
+              id: loadingToast,
+              duration: 5000
+            });
+          }
+        } else {
+          toast.error("Error al eliminar", {
+            description: error.error || "No se pudo eliminar la publicación.",
+            id: loadingToast
+          });
+        }
+        
+        setMostrarModalEliminar(false);
+      }
+    } catch (error) {
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor.",
+        id: loadingToast
+      });
+      setMostrarModalEliminar(false);
+    }
+  };
+
   const copiarAlPortapapeles = async (texto: string, tipo: string) => {
     try {
       await navigator.clipboard.writeText(texto);
@@ -591,6 +659,84 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     });
   };
 
+  const calcularTiempoRestante = (fechaExpiracion: string) => {
+    const ahora = new Date();
+    const expiracion = new Date(fechaExpiracion);
+    const diferenciaMilisegundos = expiracion.getTime() - ahora.getTime();
+
+    // Si ya expiró
+    if (diferenciaMilisegundos <= 0) {
+      return {
+        texto: "Expirado",
+        color: "text-red-600 dark:text-red-400",
+        bgColor: "bg-red-50 dark:bg-red-900/20"
+      };
+    }
+
+    const diferenciaDias = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+    const diferenciaHoras = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60));
+
+    // Calcular años, meses y días restantes
+    const años = Math.floor(diferenciaDias / 365);
+    const mesesRestantes = Math.floor((diferenciaDias % 365) / 30);
+    const diasRestantes = diferenciaDias % 30;
+
+    let texto = "";
+    let color = "";
+    let bgColor = "";
+
+    // Menos de 3 meses (90 días) - ROJO
+    if (diferenciaDias < 90) {
+      color = "text-red-600 dark:text-red-400";
+      bgColor = "bg-red-50 dark:bg-red-900/20";
+
+      if (diferenciaDias < 1) {
+        texto = `${diferenciaHoras} ${diferenciaHoras === 1 ? 'hora' : 'horas'}`;
+      } else if (diferenciaDias < 30) {
+        texto = `${diferenciaDias} ${diferenciaDias === 1 ? 'día' : 'días'}`;
+      } else {
+        const meses = Math.floor(diferenciaDias / 30);
+        const dias = diferenciaDias % 30;
+        texto = meses === 1 ? '1 mes' : `${meses} meses`;
+        if (dias > 0) {
+          texto += ` y ${dias} ${dias === 1 ? 'día' : 'días'}`;
+        }
+      }
+    }
+    // De 3 a 12 meses (90-365 días) - NARANJA
+    else if (diferenciaDias <= 365) {
+      color = "text-orange-600 dark:text-orange-400";
+      bgColor = "bg-orange-50 dark:bg-orange-900/20";
+      const meses = Math.floor(diferenciaDias / 30);
+      const dias = diferenciaDias % 30;
+      texto = meses === 1 ? '1 mes' : `${meses} meses`;
+      if (dias > 0) {
+        texto += ` y ${dias} ${dias === 1 ? 'día' : 'días'}`;
+      }
+    }
+    // Más de 12 meses - VERDE
+    else {
+      color = "text-green-600 dark:text-green-400";
+      bgColor = "bg-green-50 dark:bg-green-900/20";
+
+      if (años > 0) {
+        texto = años === 1 ? '1 año' : `${años} años`;
+        if (mesesRestantes > 0) {
+          texto += ` y ${mesesRestantes} ${mesesRestantes === 1 ? 'mes' : 'meses'}`;
+        }
+      } else {
+        const meses = Math.floor(diferenciaDias / 30);
+        const dias = diferenciaDias % 30;
+        texto = meses === 1 ? '1 mes' : `${meses} meses`;
+        if (dias > 0) {
+          texto += ` y ${dias} ${dias === 1 ? 'día' : 'días'}`;
+        }
+      }
+    }
+
+    return { texto, color, bgColor };
+  };
+
   return (
     <div className="space-y-6">
       {/* Avisos Publicados */}
@@ -669,19 +815,19 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               : "border-2 border-gray-300 text-gray-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
               }`}
           >
-            <Image 
-              src="/images/icons/calendar.svg" 
-              alt="Calendario" 
-              width={16} 
+            <Image
+              src="/images/icons/calendar.svg"
+              alt="Calendario"
+              width={16}
               height={16}
               className="w-4 h-4"
             />
             Fecha Creación
             {orderByExpiracion === null && (
-              <Image 
-                src="/images/icons/arrow-up.svg" 
-                alt="Ordenar" 
-                width={16} 
+              <Image
+                src="/images/icons/arrow-up.svg"
+                alt="Ordenar"
+                width={16}
                 height={16}
                 className={`w-4 h-4 transition-transform ${orderByCreacion === "desc" ? "rotate-180" : ""}`}
               />
@@ -696,19 +842,19 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               : "border-2 border-gray-300 text-gray-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-600 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-900/20 dark:hover:text-brand-400"
               }`}
           >
-            <Image 
-              src="/images/icons/clock.svg" 
-              alt="Reloj" 
-              width={16} 
+            <Image
+              src="/images/icons/clock.svg"
+              alt="Reloj"
+              width={16}
               height={16}
               className="w-4 h-4"
             />
             Vencimiento
             {orderByExpiracion !== null && (
-              <Image 
-                src="/images/icons/arrow-up.svg" 
-                alt="Ordenar" 
-                width={16} 
+              <Image
+                src="/images/icons/arrow-up.svg"
+                alt="Ordenar"
+                width={16}
                 height={16}
                 className={`w-4 h-4 transition-transform ${orderByExpiracion === "desc" ? "rotate-180" : ""}`}
               />
@@ -1036,7 +1182,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                       <h3 className="hidden lg:block mb-1 text-lg font-semibold text-gray-800 dark:text-white">
                         {pub.medicamentos?.nombre}
                       </h3>
-                      
+
                       <div className="flex flex-wrap gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
                         {/* Referencia solo desktop */}
                         <span className="hidden lg:inline-block px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
@@ -1062,10 +1208,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                       <div className="flex flex-wrap gap-4 mt-3 text-sm">
                         {/* Cantidad solo desktop */}
                         <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image 
-                            src="/images/icons/box.svg" 
-                            alt="Cantidad" 
-                            width={16} 
+                          <Image
+                            src="/images/icons/box.svg"
+                            alt="Cantidad"
+                            width={16}
                             height={16}
                             className="w-4 h-4"
                           />
@@ -1073,20 +1219,20 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                         </div>
                         {/* Fecha de expiración solo desktop */}
                         <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image 
-                            src="/images/icons/calendar.svg" 
-                            alt="Vencimiento" 
-                            width={16} 
+                          <Image
+                            src="/images/icons/calendar.svg"
+                            alt="Vencimiento"
+                            width={16}
                             height={16}
                             className="w-4 h-4"
                           />
                           Vencimiento: <span className="font-medium">{formatearFecha(pub.fecha_expiracion)}</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image 
-                            src="/images/icons/document-text.svg" 
-                            alt="INVIMA" 
-                            width={16} 
+                          <Image
+                            src="/images/icons/document-text.svg"
+                            alt="INVIMA"
+                            width={16}
                             height={16}
                             className="w-4 h-4"
                           />
@@ -1095,10 +1241,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
                         {pub.medicamentos?.medida_medicamento && (
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                            <Image 
-                              src="/images/icons/beaker.svg" 
-                              alt="Concentración" 
-                              width={16} 
+                            <Image
+                              src="/images/icons/beaker.svg"
+                              alt="Concentración"
+                              width={16}
                               height={16}
                               className="w-4 h-4"
                             />
@@ -1111,49 +1257,62 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 </div>
 
                 {/* Sección derecha: Estado y Acciones */}
-                <div className="flex flex-col items-end gap-3 lg:min-w-[200px]">
-                  {/* Badge de estado y fecha juntos en móvil */}
-                  <div className="flex items-center justify-between w-full gap-3 lg:flex-col lg:items-end lg:w-auto">
-                    {/* Fecha de publicación (primero en móvil) */}
+                <div className="flex flex-col items-end gap-5 lg:w-auto">
+                  {/* Layout móvil: fecha arriba, badges abajo */}
+                  <div className="flex flex-col gap-2 w-full lg:flex-col lg:items-end">
+                    {/* Fecha de publicación (primero en todas las vistas) */}
                     {pub.created_at && (
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        <Image 
-                          src="/images/icons/clock.svg" 
-                          alt="Fecha" 
-                          width={14} 
-                          height={14}
-                          className="w-3.5 h-3.5"
-                        />
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 lg:justify-end">
+                        Publicado:
                         <span>{formatearFecha(pub.created_at)}</span>
                       </div>
                     )}
 
-                    {/* Badge de estado */}
-                    <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap ${pub.estado_publicacion?.nombre === "Disponible"
-                        ? "bg-success-50 text-success-600 dark:bg-success-900/20"
-                        : pub.estado_publicacion?.nombre === "Pendiente"
-                          ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20"
-                          : pub.estado_publicacion?.nombre === "Solicitado"
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20"
-                            : pub.estado_publicacion?.nombre === "Caducado"
-                              ? "bg-warning-50 text-warning-600 dark:bg-warning-900/20"
-                              : pub.estado_publicacion?.nombre === "Eliminado"
-                                ? "bg-error-50 text-error-600 dark:bg-error-900/20"
-                                : "bg-gray-100 text-gray-600 dark:bg-gray-800"
-                        }`}
-                    >
-                      {pub.estado_publicacion?.nombre}
-                    </span>
+                    {/* Contenedor de badges de estado y tiempo restante (debajo en móvil) */}
+                    <div className="flex items-center gap-2 flex-wrap lg:justify-end">
+                      {/* Badge de estado */}
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap ${pub.estado_publicacion?.nombre === "Disponible"
+                          ? "bg-success-50 text-success-600 dark:bg-success-900/20"
+                          : pub.estado_publicacion?.nombre === "Pendiente"
+                            ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20"
+                            : pub.estado_publicacion?.nombre === "Solicitado"
+                              ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20"
+                              : pub.estado_publicacion?.nombre === "Caducado"
+                                ? "bg-warning-50 text-warning-600 dark:bg-warning-900/20"
+                                : pub.estado_publicacion?.nombre === "Eliminado"
+                                  ? "bg-error-50 text-error-600 dark:bg-error-900/20"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800"
+                          }`}
+                      >
+                        {pub.estado_publicacion?.nombre}
+                      </span>
+
+                      {/* Indicador de tiempo restante */}
+                      {(() => {
+                        const tiempoRestante = calcularTiempoRestante(pub.fecha_expiracion);
+                        return (
+                          <span
+                            className={`px-3.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap flex items-center gap-1 ${tiempoRestante.bgColor} ${tiempoRestante.color}`}
+                            title={`Tiempo restante hasta vencimiento`}
+                          > Caduca :
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {tiempoRestante.texto}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
 
                   {/* Botones de acción */}
-                  <div className="flex flex-wrap gap-2 lg:flex-col lg:w-full">
+                  <div className="flex flex-wrap gap-2">
                     {/* Botón Solicitar o Editar según sea propio */}
                     {Number(usuario?.hospital_id) === Number(pub.hospitales?.id) ? (
                       <button
                         onClick={() => abrirModalEditar(pub)}
-                        className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600 lg:w-full"
+                        className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1164,7 +1323,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                       pub.estado_publicacion?.nombre !== "Solicitado" && (
                         <button
                           onClick={() => handleSolicitar(pub)}
-                          className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-success-500 hover:bg-success-600 lg:w-full"
+                          className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-success-500 hover:bg-success-600"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1177,7 +1336,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                     {/* Botón Detalles */}
                     <button
                       onClick={() => toggleDetalles(pub.id)}
-                      className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium transition-colors border border-gray-300 rounded-lg text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:hover:bg-brand-900/20 lg:w-full"
+                      className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium transition-colors border border-gray-300 rounded-lg text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:hover:bg-brand-900/20"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1462,20 +1621,32 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+            <div className="flex items-center justify-between gap-3 px-2 mt-6">
+              {/* Botón Eliminar a la izquierda */}
               <button
                 type="button"
-                onClick={cerrarModalEditar}
-                className="px-4 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                onClick={handleEliminarPublicacion}
+                className="px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-error-500 hover:bg-error-600"
               >
-                Cancelar
+                Eliminar Publicación
               </button>
-              <button
-                type="submit"
-                className="px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600"
-              >
-                Actualizar
-              </button>
+
+              {/* Botones de acción a la derecha */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarModalEditar}
+                  className="px-4 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600"
+                >
+                  Actualizar
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -1562,6 +1733,17 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           </div>
         </div>
       </Modal>
+
+      {/* Modal de Confirmación de Eliminación */}
+      <ConfirmModal
+        isOpen={mostrarModalEliminar}
+        onClose={() => setMostrarModalEliminar(false)}
+        onConfirm={confirmarEliminarPublicacion}
+        title="Eliminar Publicación"
+        message={`¿Estás seguro de que deseas eliminar la publicación de "${publicacionSeleccionada?.medicamentos?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        variant="danger"
+      />
     </div>
   );
 }
