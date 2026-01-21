@@ -89,6 +89,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [mostrarModalSolicitud, setMostrarModalSolicitud] = useState(false);
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [mostrarModalBienvenida, setMostrarModalBienvenida] = useState(false);
   const [publicacionSeleccionada, setPublicacionSeleccionada] = useState<Publicacion | null>(null);
   const [publicacionASolicitar, setPublicacionASolicitar] = useState<Publicacion | null>(null);
   const [metodoEnvio, setMetodoEnvio] = useState<"estandar" | "prioritario">("estandar");
@@ -171,6 +172,13 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     if (usuarioData) {
       setUsuario(JSON.parse(usuarioData));
     }
+
+    // Verificar si es la primera vez en publicaciones
+    const primeraVezPublicaciones = localStorage.getItem("primeraVezPublicaciones");
+    if (!primeraVezPublicaciones) {
+      setMostrarModalBienvenida(true);
+    }
+
     cargarDatosIniciales();
     cargarAvisosPublicados();
 
@@ -519,6 +527,17 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     } catch (error) {
       toast.error("Error al copiar");
     }
+  };
+
+  const handleCerrarModalBienvenida = () => {
+    localStorage.setItem("primeraVezPublicaciones", "true");
+    setMostrarModalBienvenida(false);
+  };
+
+  const handleIrAPerfil = () => {
+    localStorage.setItem("primeraVezPublicaciones", "true");
+    setMostrarModalBienvenida(false);
+    router.push("/perfil");
   };
 
   const abrirModalSolicitud = (publicacion: Publicacion) => {
@@ -1068,6 +1087,28 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   onImageChange={(base64) => setFormData(prev => ({ ...prev, imagen: base64 }))}
                   currentImage={formData.imagen}
                 />
+              </div>
+            </div>
+
+            {/* Mensaje informativo de validación */}
+            <div className="flex gap-3 p-4 mt-6 border rounded-lg bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+              <svg
+                className="flex-shrink-0 w-5 h-5 text-blue-600 dark:text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                <p className="font-semibold">Valide los datos antes de ser publicados</p>
+                <p className="mt-1">
+                  La información registrada del medicamento debe ser precisa y verificable, puesto que son publicados en tiempo real en el sistema.                </p>
               </div>
             </div>
 
@@ -1744,6 +1785,50 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         confirmText="Eliminar"
         variant="danger"
       />
+
+      {/* Modal de Bienvenida - Verificación de Datos */}
+      <Modal isOpen={mostrarModalBienvenida} onClose={handleCerrarModalBienvenida} className="max-w-[550px] m-4">
+        <div className="relative w-full p-6 bg-white rounded-3xl dark:bg-gray-900 lg:p-8">
+          <div className="flex items-start gap-1 mb-8">
+            <div className="flex-1">
+              <h4 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+                Verifique sus datos de contacto
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                Antes de publicar o solicitar medicamentos, es importante que confirme y garantice que tanto los <span className="font-semibold text-gray-800 dark:text-gray-300">datos personales</span> como los del <span className="font-semibold text-gray-800 dark:text-gray-300">hospital</span> estén actualizados.
+              </p>
+              <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                Esta información será utilizada como contacto para concretar las solicitudes de medicamentos.
+              </p>
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <span className="font-semibold">Instrucción:</span> Puedes validar y actualizar tu información en la sección de <span className="font-semibold">Perfil</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mt-6">
+            <button
+              onClick={handleCerrarModalBienvenida}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Más tarde
+            </button>
+            <button
+              onClick={handleIrAPerfil}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-brand-600 hover:bg-brand-700"
+            >
+              Ir a Perfil
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

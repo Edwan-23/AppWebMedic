@@ -38,6 +38,7 @@ interface Publicacion {
 
 interface Envio {
   id: number;
+  updated_at?: string;
   estado_envio?: {
     id: number;
     estado?: string;
@@ -134,6 +135,16 @@ export default function ListaSolicitudes() {
       year: "numeric",
       month: "long",
       day: "numeric"
+    });
+  };
+
+  const formatearFechaHora = (fecha: string) => {
+    return new Date(fecha).toLocaleString("es-CO", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
     });
   };
 
@@ -328,17 +339,33 @@ export default function ListaSolicitudes() {
                         : "Pendiente"}
                     </span>
 
-                    {/* Botón de Seguimiento si existe envío */}
+                    {/* Botón de Seguimiento o Fecha de Entrega */}
                     {solicitud.envios_realizados && solicitud.envios_realizados.length > 0 && (
-                      <a
-                        href={`/envios?envio_id=${solicitud.envios_realizados[0].id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                        Seguimiento
-                      </a>
+                      solicitud.envios_realizados[0].estado_envio?.estado?.toLowerCase() === "entregado" ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500 dark:text-gray-500">Entregado el:</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {solicitud.envios_realizados[0].updated_at 
+                                ? formatearFechaHora(solicitud.envios_realizados[0].updated_at)
+                                : "Fecha no disponible"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <a
+                          href={`/envios?envio_id=${solicitud.envios_realizados[0].id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          Seguimiento
+                        </a>
+                      )
                     )}
                   </div>
                 </div>

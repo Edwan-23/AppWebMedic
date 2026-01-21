@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notificarClientes } from "@/app/api/notificaciones/stream/route";
 
+// Obtener hora actual en zona horaria de Bogotá
+function obtenerHoraBogota() {
+  const ahora = new Date();
+  const fechaBogota = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  return fechaBogota;
+}
+
 // Generar PIN aleatorio de 4 dígitos
 function generarPIN(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -114,7 +121,7 @@ export async function POST(
         estado_envio_id: nuevoEstado.id,
         // Guardar PIN si se generó, o borrarlo si se entregó
         pin: pinGenerado || (nuevoEstadoNombre.toLowerCase() === "entregado" ? null : undefined),
-        updated_at: new Date()
+        updated_at: obtenerHoraBogota()
       },
       include: {
         estado_envio: true,

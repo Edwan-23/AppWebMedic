@@ -118,6 +118,7 @@ export async function GET(request: NextRequest) {
         envio: {
           select: {
             id: true,
+            updated_at: true,
             estado_envio: {
               select: {
                 id: true,
@@ -169,6 +170,7 @@ export async function GET(request: NextRequest) {
       } : null,
       envios_realizados: solicitud.envio ? solicitud.envio.map((e: any) => ({
         id: Number(e.id),
+        updated_at: e.updated_at ? new Date(e.updated_at).toISOString() : null,
         estado_envio: e.estado_envio ? {
           id: Number(e.estado_envio.id),
           estado: e.estado_envio.estado,
