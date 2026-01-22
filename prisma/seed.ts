@@ -7082,22 +7082,32 @@ async function seedTipoPublicacion() {
     console.log('Creando tipo_publicacion...');
 
     await prisma.tipo_publicacion.upsert({
-        where: { nombre: 'Estandar' },
+        where: { nombre: 'Crítico' },
         update: {},
         create: {
-            nombre: 'Estandar',
-            descripcion: 'Publicación de tipo estándar'
+            nombre: 'Crítico',
+            descripcion: 'Vencimiento en menos de 3 meses'
         }
     });
 
     await prisma.tipo_publicacion.upsert({
-        where: { nombre: 'Urgente' },
+        where: { nombre: 'Normal' },
         update: {},
         create: {
-            nombre: 'Urgente',
-            descripcion: 'Publicación de tipo urgente'
+            nombre: 'Normal',
+            descripcion: 'Vencimiento entre 3 a 12 meses'
         }
     });
+
+    await prisma.tipo_publicacion.upsert({
+        where: { nombre: 'Óptimo' },
+        update: {},
+        create: {
+            nombre: 'Óptimo',
+            descripcion: 'Vencimiento mayor a 12 meses'
+        }
+    });
+
 
     console.log('✅ Tipos de publicación creados');
 }
@@ -7199,6 +7209,15 @@ async function seedUnidadDispensacion() {
         update: {},
         create: {
             id: 7,
+            nombre: 'Jarabes'
+        }
+    });
+
+    await prisma.unidad_dispensacion.upsert({
+        where: { id: 8 },
+        update: {},
+        create: {
+            id: 8,
             nombre: 'Unidades'
         }
     });

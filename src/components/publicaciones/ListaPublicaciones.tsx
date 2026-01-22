@@ -11,6 +11,7 @@ import ConfirmModal from "@/components/common/ConfirmModal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
 import BuscadorMedicamentos from "@/components/publicaciones/BuscadorMedicamentos";
+import TarjetaPublicacion from "@/components/publicaciones/TarjetaPublicacion";
 
 interface TipoPublicacion {
   id: number;
@@ -44,19 +45,19 @@ interface Publicacion {
   unidad_dispensacion_id: number | null;
   fecha_creacion: string;
   created_at?: string;
-  
+
   // Campos manuales obligatorios
   reg_invima: string;
   lote: string;
   cum: string;
   fecha_fabricacion: string;
   fecha_expiracion: string;
-  
+
   // Imágenes obligatorias
   imagen_invima: string;
   imagen_lote_vencimiento: string;
   imagen_principio_activo: string;
-  
+
   // Campos de la API
   principioactivo?: string;
   cantidadcum?: string;
@@ -64,7 +65,7 @@ interface Publicacion {
   formafarmaceutica?: string;
   titular?: string;
   descripcioncomercial?: string;
-  
+
   estado_publicacion?: EstadoPublicacion;
   tipo_publicacion?: TipoPublicacion;
   unidad_dispensacion?: UnidadDispensacion;
@@ -101,7 +102,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [publicacionSeleccionada, setPublicacionSeleccionada] = useState<Publicacion | null>(null);
   const [publicacionASolicitar, setPublicacionASolicitar] = useState<Publicacion | null>(null);
   const [metodoEnvio, setMetodoEnvio] = useState<"estandar" | "prioritario">("estandar");
-  const [detallesVisibles, setDetallesVisibles] = useState<{ [key: number]: boolean }>({});
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -118,23 +118,23 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [formData, setFormData] = useState({
     descripcion: "",
     cantidad: "",
-    
+
     // Campos manuales obligatorios
     reg_invima: "",
     lote: "",
     cum: "",
     fecha_fabricacion: "",
     fecha_expiracion: "",
-    
+
     // Imágenes obligatorias
     imagen_invima: null as string | null,
     imagen_lote_vencimiento: null as string | null,
     imagen_principio_activo: null as string | null,
-    
+
     unidad_dispensacion_id: "",
     tipo_publicacion_id: "",
     estado_publicacion_id: "1", // Por defecto "Disponible"
-    
+
     // Campos de la API
     principioactivo: "",
     cantidadcum: "",
@@ -147,23 +147,23 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [formDataEditar, setFormDataEditar] = useState({
     descripcion: "",
     cantidad: "",
-    
+
     // Campos manuales obligatorios
     reg_invima: "",
     lote: "",
     cum: "",
     fecha_fabricacion: "",
     fecha_expiracion: "",
-    
+
     // Imágenes obligatorias
     imagen_invima: null as string | null,
     imagen_lote_vencimiento: null as string | null,
     imagen_principio_activo: null as string | null,
-    
+
     unidad_dispensacion_id: "",
     tipo_publicacion_id: "",
     estado_publicacion_id: "",
-    
+
     // Campos de la API
     principioactivo: "",
     cantidadcum: "",
@@ -290,10 +290,53 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Función para calcular el tipo de publicación según la fecha de expiración
+  const calcularTipoPublicacion = (fechaExpiracion: string): { id: number; nombre: string; color: string } => {
+    if (!fechaExpiracion) return { id: 2, nombre: "Normal", color: "text-yellow-600 dark:text-yellow-400" };
+
+    const hoy = new Date();
+    const fechaExp = new Date(fechaExpiracion);
+    const diferenciaMeses = (fechaExp.getFullYear() - hoy.getFullYear()) * 12 + (fechaExp.getMonth() - hoy.getMonth());
+
+    if (diferenciaMeses < 3) {
+      return { id: 1, nombre: "Crítico", color: "text-red-600 dark:text-red-400" };
+    } else if (diferenciaMeses >= 3 && diferenciaMeses <= 12) {
+      return { id: 2, nombre: "Normal", color: "text-yellow-600 dark:text-yellow-400" };
+    } else {
+      return { id: 3, nombre: "Óptimo", color: "text-green-600 dark:text-green-400" };
+    }
+  };
+
+  // Función para obtener colores del tipo de publicación por ID
+  const obtenerColorTipoPublicacion = (tipoId: number): { bg: string; text: string } => {
+    switch (tipoId) {
+      case 1: // Crítico
+        return {
+          bg: "bg-red-50 dark:bg-red-900/20",
+          text: "text-red-600 dark:text-red-400"
+        };
+      case 2: // Normal
+        return {
+          bg: "bg-yellow-50 dark:bg-yellow-900/20",
+          text: "text-yellow-600 dark:text-yellow-400"
+        };
+      case 3: // Óptimo
+        return {
+          bg: "bg-green-50 dark:bg-green-900/20",
+          text: "text-green-600 dark:text-green-400"
+        };
+      default:
+        return {
+          bg: "bg-gray-50 dark:bg-gray-800",
+          text: "text-gray-600 dark:text-gray-400"
+        };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.principioactivo || !formData.cantidad || !formData.fecha_expiracion || !formData.tipo_publicacion_id) {
+    if (!formData.principioactivo || !formData.cantidad || !formData.fecha_expiracion) {
       toast.error("¡Campos requeridos!", {
         description: "Completa todos los campos obligatorios, incluyendo el medicamento."
       });
@@ -318,6 +361,9 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
     const loadingToast = toast.loading("Creando publicación...");
 
+    // Calcular automáticamente el tipo de publicación basado en la fecha de expiración
+    const tipoCalculado = calcularTipoPublicacion(formData.fecha_expiracion);
+
     try {
       const response = await fetch("/api/publicaciones", {
         method: "POST",
@@ -326,7 +372,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           ...formData,
           cantidad: parseInt(formData.cantidad),
           hospital_id: usuario?.hospital_id,
-          tipo_publicacion_id: parseInt(formData.tipo_publicacion_id),
+          tipo_publicacion_id: tipoCalculado.id, // Usar el tipo calculado automáticamente
           estado_publicacion_id: parseInt(formData.estado_publicacion_id),
           unidad_dispensacion_id: formData.unidad_dispensacion_id ? parseInt(formData.unidad_dispensacion_id) : null
         })
@@ -399,35 +445,22 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     setPage(1);
   };
 
-  const toggleDetalles = (publicacionId: number) => {
-    setDetallesVisibles(prev => ({
-      ...prev,
-      [publicacionId]: !prev[publicacionId]
-    }));
-  };
-
   const abrirModalEditar = (publicacion: Publicacion) => {
     setPublicacionSeleccionada(publicacion);
     setFormDataEditar({
       descripcion: publicacion.descripcion || "",
       cantidad: publicacion.cantidad?.toString() || "",
       reg_invima: publicacion.reg_invima || "",
-      unidad_dispensacion_id: publicacion.unidad_dispensacion_id?.toString() || "",
-      fecha_fabricacion: publicacion.fecha_fabricacion ? new Date(publicacion.fecha_fabricacion).toISOString().split('T')[0] : "",
-      fecha_expiracion: publicacion.fecha_expiracion ? new Date(publicacion.fecha_expiracion).toISOString().split('T')[0] : "",
-      tipo_publicacion_id: publicacion.tipo_publicacion?.id?.toString() || "",
-      estado_publicacion_id: publicacion.estado_publicacion?.id?.toString() || "",
-      
-      // Campos manuales
       lote: publicacion.lote || "",
       cum: publicacion.cum || "",
-      
-      // Imágenes
+      fecha_fabricacion: publicacion.fecha_fabricacion || "",
+      fecha_expiracion: publicacion.fecha_expiracion || "",
       imagen_invima: publicacion.imagen_invima || null,
       imagen_lote_vencimiento: publicacion.imagen_lote_vencimiento || null,
       imagen_principio_activo: publicacion.imagen_principio_activo || null,
-      
-      // Campos de la API
+      unidad_dispensacion_id: publicacion.unidad_dispensacion?.id?.toString() || "",
+      tipo_publicacion_id: publicacion.tipo_publicacion?.id?.toString() || "",
+      estado_publicacion_id: publicacion.estado_publicacion?.id?.toString() || "",
       principioactivo: publicacion.principioactivo || "",
       cantidadcum: publicacion.cantidadcum || "",
       unidadmedida: publicacion.unidadmedida || "",
@@ -474,12 +507,15 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
     if (!publicacionSeleccionada) return;
 
-    if (!formDataEditar.principioactivo || !formDataEditar.cantidad || !formDataEditar.reg_invima || !formDataEditar.fecha_expiracion || !formDataEditar.tipo_publicacion_id) {
+    if (!formDataEditar.principioactivo || !formDataEditar.cantidad || !formDataEditar.reg_invima || !formDataEditar.fecha_expiracion) {
       toast.error("¡Campos requeridos!", {
         description: "Completa todos los campos obligatorios."
       });
       return;
     }
+
+    // Calcular automáticamente el tipo de publicación
+    const tipoCalculado = calcularTipoPublicacion(formDataEditar.fecha_expiracion);
 
     const loadingToast = toast.loading("Actualizando publicación...");
 
@@ -490,7 +526,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         body: JSON.stringify({
           ...formDataEditar,
           cantidad: parseInt(formDataEditar.cantidad),
-          tipo_publicacion_id: parseInt(formDataEditar.tipo_publicacion_id),
+          tipo_publicacion_id: tipoCalculado.id,
           estado_publicacion_id: parseInt(formDataEditar.estado_publicacion_id),
           unidad_dispensacion_id: formDataEditar.unidad_dispensacion_id ? parseInt(formDataEditar.unidad_dispensacion_id) : null
         })
@@ -544,7 +580,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         cargarPublicaciones();
       } else {
         const error = await response.json();
-        
+
         // Mostrar advertencia específica según el tipo de relación
         if (response.status === 409) {
           if (error.tipo === "envios") {
@@ -572,7 +608,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
             id: loadingToast
           });
         }
-        
+
         setMostrarModalEliminar(false);
       }
     } catch (error) {
@@ -1005,153 +1041,180 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
             Nueva Publicación de Medicamento
           </h3>
           <form onSubmit={handleSubmit}>
-            {/* Buscador de Medicamentos por Filtros */}
-            <div className="mb-6">
-              <BuscadorMedicamentos
-                onMedicamentoSeleccionado={(medicamento) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    principioactivo: medicamento.principioactivo,
-                    cantidadcum: medicamento.cantidadcum,
-                    unidadmedida: medicamento.unidadmedida,
-                    formafarmaceutica: medicamento.formafarmaceutica,
-                    titular: medicamento.titular,
-                    descripcioncomercial: medicamento.descripcioncomercial
-                  }));
-                }}
-              />
+            {/* SECCIÓN 1: Datos del medicamento */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Datos del medicamento
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                {/* Buscador de Medicamentos */}
+                <div className="mb-6">
+                  <BuscadorMedicamentos
+                    onMedicamentoSeleccionado={(medicamento) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        principioactivo: medicamento.principioactivo,
+                        cantidadcum: medicamento.cantidadcum,
+                        unidadmedida: medicamento.unidadmedida,
+                        formafarmaceutica: medicamento.formafarmaceutica,
+                        titular: medicamento.titular,
+                        descripcioncomercial: medicamento.descripcioncomercial
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <Label>Registro INVIMA *</Label>
+                    <input
+                      type="text"
+                      name="reg_invima"
+                      value={formData.reg_invima}
+                      onChange={handleChange}
+                      placeholder="Ej: INVIMA2024M-0012345"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Lote *</Label>
+                    <input
+                      type="text"
+                      name="lote"
+                      value={formData.lote}
+                      onChange={handleChange}
+                      placeholder="Ej: L202401"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>CUM *</Label>
+                    <input
+                      type="text"
+                      name="cum"
+                      value={formData.cum}
+                      onChange={handleChange}
+                      placeholder="Código Único de Medicamento"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <DatePicker
+                      id="fecha_fabricacion_crear"
+                      label="Fecha de Fabricación *"
+                      placeholder="Seleccione una fecha"
+                      defaultDate={formData.fecha_fabricacion || undefined}
+                      maxDate={new Date()}
+                      onChange={(selectedDates) => {
+                        if (selectedDates && selectedDates.length > 0) {
+                          const fecha = selectedDates[0];
+                          const fechaFormateada = fecha.toISOString().split('T')[0];
+                          setFormData(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <DatePicker
+                      id="fecha_expiracion_crear"
+                      label="Fecha de Expiración *"
+                      placeholder="Seleccione una fecha"
+                      defaultDate={formData.fecha_expiracion || undefined}
+                      minDate={new Date()}
+                      onChange={(selectedDates) => {
+                        if (selectedDates && selectedDates.length > 0) {
+                          const fecha = selectedDates[0];
+                          const fechaFormateada = fecha.toISOString().split('T')[0];
+                          setFormData(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Tipo de Publicación Automático (Solo lectura) */}
+                  <div>
+                    <Label>Tipo de Publicación</Label>
+                    <div className="flex items-center w-full px-4 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                      {formData.fecha_expiracion ? (
+                        (() => {
+                          const tipoCalculado = calcularTipoPublicacion(formData.fecha_expiracion);
+                          return (
+                            <span className={`font-semibold ${tipoCalculado.color}`}>
+                              {tipoCalculado.nombre}
+                            </span>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-gray-400">Seleccione fecha de expiración</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+            {/* SECCIÓN 2: Cantidad a publicar */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Cantidad a publicar
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <div>
+                    <Label>Unidad de dispensación *</Label>
+                    <Select
+                      name="unidad_dispensacion_id"
+                      value={formData.unidad_dispensacion_id}
+                      onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                      options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                      placeholder="Seleccione una unidad"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <Label>Tipo de Publicación *</Label>
-                <Select
-                  name="tipo_publicacion_id"
-                  value={formData.tipo_publicacion_id}
-                  onChange={(value) => setFormData(prev => ({ ...prev, tipo_publicacion_id: value }))}
-                  options={tiposPublicacion.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
-                  placeholder="Seleccione tipo"
-                  required
-                />
+                  <div>
+                    <Label>Cantidad *</Label>
+                    <input
+                      type="number"
+                      name="cantidad"
+                      value={formData.cantidad}
+                      onChange={handleChange}
+                      min="1"
+                      placeholder="0"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Observación</Label>
+                    <textarea
+                      name="descripcion"
+                      value={formData.descripcion}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Detalles adicionales..."
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <Label>Unidad de dispensación *</Label>
-                <Select
-                  name="unidad_dispensacion_id"
-                  value={formData.unidad_dispensacion_id}
-                  onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
-                  options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
-                  placeholder="Seleccione una unidad"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Cantidad *</Label>
-                <input
-                  type="number"
-                  name="cantidad"
-                  value={formData.cantidad}
-                  onChange={handleChange}
-                  min="1"
-                  placeholder="0"
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div>
-                <Label>Registro INVIMA *</Label>
-                <input
-                  type="text"
-                  name="reg_invima"
-                  value={formData.reg_invima}
-                  onChange={handleChange}
-                  placeholder="Ej: INVIMA2024M-0012345"
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div>
-                <Label>Lote *</Label>
-                <input
-                  type="text"
-                  name="lote"
-                  value={formData.lote}
-                  onChange={handleChange}
-                  placeholder="Ej: L202401"
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div>
-                <Label>CUM *</Label>
-                <input
-                  type="text"
-                  name="cum"
-                  value={formData.cum}
-                  onChange={handleChange}
-                  placeholder="Código Único de Medicamento"
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div>
-                <DatePicker
-                  id="fecha_fabricacion_crear"
-                  label="Fecha de Fabricación *"
-                  placeholder="Seleccione una fecha"
-                  defaultDate={formData.fecha_fabricacion || undefined}
-                  maxDate={new Date()}
-                  onChange={(selectedDates) => {
-                    if (selectedDates && selectedDates.length > 0) {
-                      const fecha = selectedDates[0];
-                      const fechaFormateada = fecha.toISOString().split('T')[0];
-                      setFormData(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
-                    }
-                  }}
-                />
-              </div>
-
-              <div>
-                <DatePicker
-                  id="fecha_expiracion_crear"
-                  label="Fecha de Expiración *"
-                  placeholder="Seleccione una fecha"
-                  defaultDate={formData.fecha_expiracion || undefined}
-                  minDate={new Date()}
-                  onChange={(selectedDates) => {
-                    if (selectedDates && selectedDates.length > 0) {
-                      const fecha = selectedDates[0];
-                      const fechaFormateada = fecha.toISOString().split('T')[0];
-                      setFormData(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-3">
-                <Label>Observación o descripción</Label>
-                <textarea
-                  name="descripcion"
-                  value={formData.descripcion}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Detalles adicionales sobre el medicamento..."
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-3">
-                <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
-                  Imágenes Obligatorias
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* SECCIÓN 3: Imágenes del medicamento */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Imágenes del medicamento
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <ImageUpload
                     label="Registro INVIMA *"
                     onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_invima: url }))}
@@ -1240,368 +1303,16 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       ) : (
         <div className="space-y-4">
           {publicaciones.map((pub) => (
-            <div
+            <TarjetaPublicacion
               key={pub.id}
-              className="overflow-hidden transition-shadow border border-gray-200 rounded-2xl dark:border-gray-800 hover:shadow-lg"
-            >
-              {/* Contenedor principal horizontal */}
-              <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-start lg:justify-between">
-
-                {/* Sección imagen + info básica (móvil) / Solo imagen (desktop) */}
-                <div className="flex gap-3 lg:block">
-                  {/* Imagen de la publicación */}
-                  {pub.imagen_principio_activo && (
-                    <div className="flex-shrink-0">
-                      <div className="aspect-square w-24 h-24 lg:w-32 lg:h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
-                        <Image
-                          src={pub.imagen_principio_activo}
-                          alt={pub.principioactivo || "Medicamento"}
-                          width={128}
-                          height={128}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Info básica al lado de la imagen (móvil) */}
-                  <div className="flex-1 min-w-0 lg:hidden">
-                    <h3 className="mb-1 text-base font-semibold text-gray-800 dark:text-white line-clamp-2">
-                      {pub.principioactivo}
-                    </h3>
-                    <div className="flex flex-col gap-1.5 text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {pub.descripcioncomercial}
-                      </span>
-                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        <span className="font-medium">{pub.cantidad}</span> {pub.unidad_dispensacion?.nombre || "unidades"}
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Vencimiento: <span className="font-medium">{formatearFecha(pub.fecha_expiracion)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Información del medicamento (solo desktop o resto info móvil) */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-3">
-                    {/* Icono de medicamento (solo si no hay imagen) */}
-                    {!pub.imagen_principio_activo && (
-                      <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 rounded-lg bg-brand-50 dark:bg-brand-900/20">
-                        <svg className="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Detalles del medicamento */}
-                    <div className="flex-1 min-w-0">
-                      {/* Título (solo desktop) */}
-                      <h3 className="hidden lg:block mb-1 text-lg font-semibold text-gray-800 dark:text-white">
-                        {pub.principioactivo}
-                      </h3>
-
-                      <div className="flex flex-wrap gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
-                        {/* Descripción comercial solo desktop */}
-                        <span className="hidden lg:inline-block px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
-                          {pub.descripcioncomercial}
-                        </span>
-                        {pub.formafarmaceutica && (
-                          <span className="px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                            {pub.formafarmaceutica}
-                          </span>
-                        )}
-                        <span className="px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
-                          {pub.tipo_publicacion?.nombre}
-                        </span>
-                      </div>
-
-                      {pub.descripcion && (
-                        <p className="text-sm text-gray-600 line-clamp-2 dark:text-gray-400">
-                          {pub.descripcion}
-                        </p>
-                      )}
-
-                      {/* Info compacta (solo desktop o info adicional móvil) */}
-                      <div className="flex flex-wrap gap-4 mt-3 text-sm">
-                        {/* Cantidad solo desktop */}
-                        <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image
-                            src="/images/icons/box.svg"
-                            alt="Cantidad"
-                            width={16}
-                            height={16}
-                            className="w-4 h-4"
-                          />
-                          <span className="font-medium">{pub.cantidad}</span> {pub.unidad_dispensacion?.nombre || "unidades"}
-                        </div>
-                        {/* Fecha de expiración solo desktop */}
-                        <div className="hidden lg:flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image
-                            src="/images/icons/calendar.svg"
-                            alt="Vencimiento"
-                            width={16}
-                            height={16}
-                            className="w-4 h-4"
-                          />
-                          Vencimiento: <span className="font-medium">{formatearFecha(pub.fecha_expiracion)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Image
-                            src="/images/icons/document-text.svg"
-                            alt="INVIMA"
-                            width={16}
-                            height={16}
-                            className="w-4 h-4"
-                          />
-                          INVIMA: <span className="font-medium">{pub.reg_invima}</span>
-                        </div>
-
-                        {pub.cantidadcum && pub.unidadmedida && (
-                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                            <Image
-                              src="/images/icons/beaker.svg"
-                              alt="Concentración"
-                              width={16}
-                              height={16}
-                              className="w-4 h-4"
-                            />
-                            <span className="font-medium">{pub.cantidadcum} {pub.unidadmedida}</span>
-                          </div>
-                        )}
-
-                        {pub.titular && (
-                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                            <Image
-                              src="/images/icons/building-office.svg"
-                              alt="Titular"
-                              width={16}
-                              height={16}
-                              className="w-4 h-4"
-                            />
-                            <span className="font-medium">{pub.titular}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sección derecha: Estado y Acciones */}
-                <div className="flex flex-col items-end gap-5 lg:w-auto">
-                  {/* Layout móvil: fecha arriba, badges abajo */}
-                  <div className="flex flex-col gap-2 w-full lg:flex-col lg:items-end">
-                    {/* Fecha de publicación (primero en todas las vistas) */}
-                    {pub.created_at && (
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 lg:justify-end">
-                        Publicado:
-                        <span>{formatearFecha(pub.created_at)}</span>
-                      </div>
-                    )}
-
-                    {/* Contenedor de badges de estado y tiempo restante (debajo en móvil) */}
-                    <div className="flex items-center gap-2 flex-wrap lg:justify-end">
-                      {/* Badge de estado */}
-                      <span
-                        className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap ${pub.estado_publicacion?.nombre === "Disponible"
-                          ? "bg-success-50 text-success-600 dark:bg-success-900/20"
-                          : pub.estado_publicacion?.nombre === "Pendiente"
-                            ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20"
-                            : pub.estado_publicacion?.nombre === "Solicitado"
-                              ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20"
-                              : pub.estado_publicacion?.nombre === "Caducado"
-                                ? "bg-warning-50 text-warning-600 dark:bg-warning-900/20"
-                                : pub.estado_publicacion?.nombre === "Eliminado"
-                                  ? "bg-error-50 text-error-600 dark:bg-error-900/20"
-                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800"
-                          }`}
-                      >
-                        {pub.estado_publicacion?.nombre}
-                      </span>
-
-                      {/* Indicador de tiempo restante */}
-                      {(() => {
-                        const tiempoRestante = calcularTiempoRestante(pub.fecha_expiracion);
-                        return (
-                          <span
-                            className={`px-3.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap flex items-center gap-1 ${tiempoRestante.bgColor} ${tiempoRestante.color}`}
-                            title={`Tiempo restante hasta vencimiento`}
-                          > Caduca :
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {tiempoRestante.texto}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Botones de acción */}
-                  <div className="flex flex-wrap gap-2">
-                    {/* Botón Solicitar o Editar según sea propio */}
-                    {Number(usuario?.hospital_id) === Number(pub.hospitales?.id) ? (
-                      <button
-                        onClick={() => abrirModalEditar(pub)}
-                        className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Editar
-                      </button>
-                    ) : (
-                      pub.estado_publicacion?.nombre !== "Solicitado" && (
-                        <button
-                          onClick={() => handleSolicitar(pub)}
-                          className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-success-500 hover:bg-success-600"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          Solicitar
-                        </button>
-                      )
-                    )}
-
-                    {/* Botón Detalles */}
-                    <button
-                      onClick={() => toggleDetalles(pub.id)}
-                      className="flex items-center justify-center flex-1 gap-2 px-4 py-2 text-sm font-medium transition-colors border border-gray-300 rounded-lg text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:hover:bg-brand-900/20"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {detallesVisibles[pub.id] ? "Ocultar" : "Detalles"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Panel de detalles desplegable */}
-              {detallesVisibles[pub.id] && (
-                <div className="px-6 pb-6 pt-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                  <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white">
-                    Información del Hospital
-                  </h4>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {/* Nombre del hospital */}
-                    <div className="flex items-start gap-2">
-                      <svg className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Hospital</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
-                          {pub.hospitales?.nombre}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Ubicación */}
-                    {pub.hospitales?.municipios?.nombre && (
-                      <div className="flex items-start gap-2">
-                        <svg className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Ubicación</p>
-                          <p className="text-sm font-medium text-gray-800 dark:text-white">
-                            {pub.hospitales.municipios.nombre}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Dirección con copiar */}
-                    {pub.hospitales?.direccion && (
-                      <div className="flex items-start gap-2">
-                        <svg className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Dirección</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-800 dark:text-white">
-                              {pub.hospitales.direccion}
-                            </p>
-                            <button
-                              onClick={() => copiarAlPortapapeles(pub.hospitales!.direccion!, "Dirección")}
-                              className="flex-shrink-0 p-1 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Copiar dirección"
-                            >
-                              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Celular con copiar */}
-                    {pub.hospitales?.celular && (
-                      <div className="flex items-start gap-2">
-                        <svg className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Celular</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-800 dark:text-white">
-                              {pub.hospitales.celular}
-                            </p>
-                            <button
-                              onClick={() => copiarAlPortapapeles(pub.hospitales!.celular!, "Celular")}
-                              className="flex-shrink-0 p-1 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Copiar celular"
-                            >
-                              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Teléfono con copiar */}
-                    {pub.hospitales?.telefono && (
-                      <div className="flex items-start gap-2">
-                        <svg className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Teléfono</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-800 dark:text-white">
-                              {pub.hospitales.telefono}
-                            </p>
-                            <button
-                              onClick={() => copiarAlPortapapeles(pub.hospitales!.telefono!, "Teléfono")}
-                              className="flex-shrink-0 p-1 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Copiar teléfono"
-                            >
-                              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+              pub={pub}
+              usuario={usuario}
+              formatearFecha={formatearFecha}
+              calcularTiempoRestante={calcularTiempoRestante}
+              abrirModalEditar={abrirModalEditar}
+              handleSolicitar={handleSolicitar}
+              copiarAlPortapapeles={copiarAlPortapapeles}
+            />
           ))}
         </div>
       )}
@@ -1659,167 +1370,196 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           </div>
           <form className="flex flex-col" onSubmit={handleUpdate}>
             <div className="px-2 pb-3 overflow-y-auto custom-scrollbar max-h-[450px]">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                {/* Información del medicamento (solo lectura) */}
-                <div className="col-span-2">
-                  <Label>Medicamento</Label>
-                  <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">
-                      {formDataEditar.principioactivo}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {formDataEditar.descripcioncomercial}
-                    </p>
-                    <div className="flex gap-2 mt-2 text-xs">
-                      <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                        {formDataEditar.formafarmaceutica}
-                      </span>
-                      <span className="px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                        {formDataEditar.cantidadcum} {formDataEditar.unidadmedida}
-                      </span>
+
+              {/* SECCIÓN 1: Datos del medicamento */}
+              <div className="mb-6">
+                <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
+                  Datos del medicamento
+                </h3>
+                <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  {/* Información del medicamento (solo lectura) */}
+                  <div className="mb-4">
+                    <Label>Medicamento</Label>
+                    <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">
+                        {formDataEditar.principioactivo}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formDataEditar.descripcioncomercial}
+                      </p>
+                      <div className="flex gap-2 mt-2 text-xs">
+                        <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                          {formDataEditar.formafarmaceutica}
+                        </span>
+                        <span className="px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          {formDataEditar.cantidadcum} {formDataEditar.unidadmedida}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div>
+                      <Label>Registro INVIMA *</Label>
+                      <input
+                        type="text"
+                        name="reg_invima"
+                        value={formDataEditar.reg_invima}
+                        onChange={handleChangeEditar}
+                        placeholder="Ej: INVIMA2024M-0012345"
+                        required
+                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Lote *</Label>
+                      <input
+                        type="text"
+                        name="lote"
+                        value={formDataEditar.lote}
+                        onChange={handleChangeEditar}
+                        placeholder="Ej: L202401"
+                        required
+                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>CUM *</Label>
+                      <input
+                        type="text"
+                        name="cum"
+                        value={formDataEditar.cum}
+                        onChange={handleChangeEditar}
+                        placeholder="Código Único de Medicamento"
+                        required
+                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      />
+                    </div>
+
+                    <div>
+                      <DatePicker
+                        id="fecha_fabricacion_editar"
+                        label="Fecha de Fabricación *"
+                        placeholder="Seleccione una fecha"
+                        defaultDate={formDataEditar.fecha_fabricacion || undefined}
+                        maxDate={new Date()}
+                        onChange={(selectedDates) => {
+                          if (selectedDates && selectedDates.length > 0) {
+                            const fecha = selectedDates[0];
+                            const fechaFormateada = fecha.toISOString().split('T')[0];
+                            setFormDataEditar(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <DatePicker
+                        id="fecha_expiracion_editar"
+                        label="Fecha de Expiración *"
+                        placeholder="Seleccione una fecha"
+                        defaultDate={formDataEditar.fecha_expiracion || undefined}
+                        minDate={new Date()}
+                        onChange={(selectedDates) => {
+                          if (selectedDates && selectedDates.length > 0) {
+                            const fecha = selectedDates[0];
+                            const fechaFormateada = fecha.toISOString().split('T')[0];
+                            setFormDataEditar(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Tipo de Publicación Automático (Solo lectura) */}
+                    <div>
+                      <Label>Tipo de Publicación</Label>
+                      <div className="flex items-center w-full px-4 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                        {formDataEditar.fecha_expiracion ? (
+                          (() => {
+                            const tipoCalculado = calcularTipoPublicacion(formDataEditar.fecha_expiracion);
+                            return (
+                              <span className={`font-semibold ${tipoCalculado.color}`}>
+                                {tipoCalculado.nombre}
+                              </span>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-gray-400">Seleccione fecha de expiración</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label>Estado *</Label>
+                      <Select
+                        name="estado_publicacion_id"
+                        value={formDataEditar.estado_publicacion_id}
+                        onChange={(value) => setFormDataEditar(prev => ({ ...prev, estado_publicacion_id: value }))}
+                        options={estadosPublicacion.map(estado => ({ value: String(estado.id), label: estado.nombre }))}
+                        placeholder="Seleccione estado"
+                        required
+                      />
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Tipo de Publicación *</Label>
-                  <Select
-                    name="tipo_publicacion_id"
-                    value={formDataEditar.tipo_publicacion_id}
-                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, tipo_publicacion_id: value }))}
-                    options={tiposPublicacion.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
-                    placeholder="Seleccione tipo"
-                    required
-                  />
+              {/* SECCIÓN 2: Cantidad a publicar */}
+              <div className="mb-6">
+                <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
+                  Cantidad a publicar
+                </h3>
+                <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <div>
+                      <Label>Unidad de dispensación *</Label>
+                      <Select
+                        name="unidad_dispensacion_id"
+                        value={formDataEditar.unidad_dispensacion_id}
+                        onChange={(value) => setFormDataEditar(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                        options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                        placeholder="Seleccione una unidad"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Cantidad *</Label>
+                      <input
+                        type="number"
+                        name="cantidad"
+                        value={formDataEditar.cantidad}
+                        onChange={handleChangeEditar}
+                        min="1"
+                        placeholder="0"
+                        required
+                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      />
+                    </div>
+
+                    <div className="col-span-1 lg:col-span-3">
+                      <Label>Observación</Label>
+                      <textarea
+                        name="descripcion"
+                        value={formDataEditar.descripcion}
+                        onChange={handleChangeEditar}
+                        rows={3}
+                        placeholder="Detalles adicionales..."
+                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      />
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Estado *</Label>
-                  <Select
-                    name="estado_publicacion_id"
-                    value={formDataEditar.estado_publicacion_id}
-                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, estado_publicacion_id: value }))}
-                    options={estadosPublicacion.map(estado => ({ value: String(estado.id), label: estado.nombre }))}
-                    placeholder="Seleccione estado"
-                    required
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Cantidad *</Label>
-                  <input
-                    type="number"
-                    name="cantidad"
-                    value={formDataEditar.cantidad}
-                    onChange={handleChangeEditar}
-                    min="1"
-                    placeholder="0"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Unidad de dispensación *</Label>
-                  <Select
-                    name="unidad_dispensacion_id"
-                    value={formDataEditar.unidad_dispensacion_id}
-                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, unidad_dispensacion_id: value }))}
-                    options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
-                    placeholder="Seleccione una unidad"
-                    required
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Registro INVIMA *</Label>
-                  <input
-                    type="text"
-                    name="reg_invima"
-                    value={formDataEditar.reg_invima}
-                    onChange={handleChangeEditar}
-                    placeholder="Ej: INVIMA2024M-0012345"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Lote *</Label>
-                  <input
-                    type="text"
-                    name="lote"
-                    value={formDataEditar.lote}
-                    onChange={handleChangeEditar}
-                    placeholder="Ej: L202401"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>CUM *</Label>
-                  <input
-                    type="text"
-                    name="cum"
-                    value={formDataEditar.cum}
-                    onChange={handleChangeEditar}
-                    placeholder="Código Único de Medicamento"
-                    required
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  />
-                </div>
-
-                <div className="col-span-2 lg:col-span-1">
-                  <DatePicker
-                    id="fecha_fabricacion_editar"
-                    label="Fecha de Fabricación *"
-                    placeholder="Seleccione una fecha"
-                    defaultDate={formDataEditar.fecha_fabricacion || undefined}
-                    maxDate={new Date()}
-                    onChange={(selectedDates) => {
-                      if (selectedDates && selectedDates.length > 0) {
-                        const fecha = selectedDates[0];
-                        const fechaFormateada = fecha.toISOString().split('T')[0];
-                        setFormDataEditar(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <DatePicker
-                    id="fecha_expiracion_editar"
-                    label="Fecha de Expiración *"
-                    placeholder="Seleccione una fecha"
-                    defaultDate={formDataEditar.fecha_expiracion || undefined}
-                    minDate={new Date()}
-                    onChange={(selectedDates) => {
-                      if (selectedDates && selectedDates.length > 0) {
-                        const fecha = selectedDates[0];
-                        const fechaFormateada = fecha.toISOString().split('T')[0];
-                        setFormDataEditar(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <Label>Descripción</Label>
-                  <textarea
-                    name="descripcion"
-                    value={formDataEditar.descripcion}
-                    onChange={handleChangeEditar}
-                    rows={3}
-                    placeholder="Detalles adicionales sobre el medicamento..."
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
-                    Imágenes Obligatorias
-                  </h3>
+              {/* SECCIÓN 3: Imágenes del medicamento */}
+              <div className="mb-6">
+                <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
+                  Imágenes del medicamento
+                </h3>
+                <div className="pb-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <ImageUpload
                       label="Registro INVIMA *"
@@ -1842,6 +1582,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   </div>
                 </div>
               </div>
+
             </div>
             <div className="flex items-center justify-between gap-3 px-2 mt-6">
               {/* Botón Eliminar a la izquierda */}
