@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { descripcion: { contains: search, mode: 'insensitive' } },
-        { medicamentos: { nombre: { contains: search, mode: 'insensitive' } } },
-        { medicamentos: { referencia: { contains: search, mode: 'insensitive' } } }
+        { principioactivo: { contains: search, mode: 'insensitive' } },
+        { descripcioncomercial: { contains: search, mode: 'insensitive' } },
+        { titular: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -73,20 +74,7 @@ export async function GET(request: NextRequest) {
               }
             }
           },
-          medicamentos: {
-            select: {
-              id: true,
-              nombre: true,
-              referencia: true,
-              concentracion: true,
-              tipo_medicamento: {
-                select: { nombre: true }
-              },
-              medida_medicamento: {
-                select: { nombre: true }
-              }
-            }
-          },
+
           estado_publicacion: {
             select: {
               id: true,
@@ -114,17 +102,34 @@ export async function GET(request: NextRequest) {
     const publicacionesData = publicaciones.map((pub: any) => ({
       id: Number(pub.id),
       hospital_id: pub.hospital_id ? Number(pub.hospital_id) : null,
-      medicamento_id: pub.medicamento_id ? Number(pub.medicamento_id) : null,
       descripcion: pub.descripcion,
-      imagen: pub.imagen,
       tipo_publicacion_id: pub.tipo_publicacion_id ? Number(pub.tipo_publicacion_id) : null,
       cantidad: pub.cantidad,
-      reg_invima: pub.reg_invima,
       unidad_dispensacion_id: pub.unidad_dispensacion_id ? Number(pub.unidad_dispensacion_id) : null,
-      fecha_expiracion: pub.fecha_expiracion ? new Date(pub.fecha_expiracion).toISOString() : null,
       estado_publicacion_id: pub.estado_publicacion_id ? Number(pub.estado_publicacion_id) : null,
       created_at: pub.created_at ? new Date(pub.created_at).toISOString() : null,
       updated_at: pub.updated_at ? new Date(pub.updated_at).toISOString() : null,
+      
+      // Campos manuales
+      reg_invima: pub.reg_invima,
+      lote: pub.lote,
+      cum: pub.cum,
+      fecha_fabricacion: pub.fecha_fabricacion ? new Date(pub.fecha_fabricacion).toISOString() : null,
+      fecha_expiracion: pub.fecha_expiracion ? new Date(pub.fecha_expiracion).toISOString() : null,
+      
+      // Imágenes
+      imagen_invima: pub.imagen_invima,
+      imagen_lote_vencimiento: pub.imagen_lote_vencimiento,
+      imagen_principio_activo: pub.imagen_principio_activo,
+      
+      // Campos de la API
+      principioactivo: pub.principioactivo,
+      cantidadcum: pub.cantidadcum,
+      unidadmedida: pub.unidadmedida,
+      formafarmaceutica: pub.formafarmaceutica,
+      titular: pub.titular,
+      descripcioncomercial: pub.descripcioncomercial,
+      
       hospitales: pub.hospitales ? {
         id: Number(pub.hospitales.id),
         nombre: pub.hospitales.nombre,
@@ -132,14 +137,6 @@ export async function GET(request: NextRequest) {
         celular: pub.hospitales.celular,
         telefono: pub.hospitales.telefono,
         municipios: pub.hospitales.municipios
-      } : null,
-      medicamentos: pub.medicamentos ? {
-        id: Number(pub.medicamentos.id),
-        nombre: pub.medicamentos.nombre,
-        referencia: pub.medicamentos.referencia,
-        concentracion: pub.medicamentos.concentracion,
-        tipo_medicamento: pub.medicamentos.tipo_medicamento,
-        medida_medicamento: pub.medicamentos.medida_medicamento
       } : null,
       estado_publicacion: pub.estado_publicacion ? {
         id: Number(pub.estado_publicacion.id),
@@ -187,12 +184,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parsear fecha correctamente
-    const [year, month, day] = body.fecha_expiracion.split('-').map(Number);
-    const fechaExpiracion = new Date(year, month - 1, day);
+    // Validar fecha de fabricación
+    if (!body.fecha_fabricacion) {
+      return NextResponse.json(
+        { error: "La fecha de fabricación es requerida" },
+        { status: 400 }
+      );
+    }
 
-    // Validar que la fecha sea válida
-    if (isNaN(fechaExpiracion.getTime())) {
+    // Validar campos obligatorios
+    if (!body.lote || !body.cum || !body.imagen_invima || !body.imagen_lote_vencimiento || !body.imagen_principio_activo) {
+      return NextResponse.json(
+        { error: "Lote, CUM y las 3 imágenes son obligatorias" },
+        { status: 400 }
+      );
+    }
+
+    // Parsear fechas correctamente
+    const [yearExp, monthExp, dayExp] = body.fecha_expiracion.split('-').map(Number);
+    const fechaExpiracion = new Date(yearExp, monthExp - 1, dayExp);
+
+    const [yearFab, monthFab, dayFab] = body.fecha_fabricacion.split('-').map(Number);
+    const fechaFabricacion = new Date(yearFab, monthFab - 1, dayFab);
+
+    // Validar que las fechas sean válidas
+    if (isNaN(fechaExpiracion.getTime()) || isNaN(fechaFabricacion.getTime())) {
       return NextResponse.json(
         { error: "Formato de fecha inválido" },
         { status: 400 }
@@ -202,19 +218,35 @@ export async function POST(request: NextRequest) {
     const nuevaPublicacion = await (prisma as any).publicaciones.create({
       data: {
         hospital_id: body.hospital_id ? BigInt(body.hospital_id) : null,
-        medicamento_id: body.medicamento_id ? BigInt(body.medicamento_id) : null,
         descripcion: body.descripcion || null,
-        imagen: body.imagen || null,
         tipo_publicacion_id: body.tipo_publicacion_id ? BigInt(body.tipo_publicacion_id) : null,
         cantidad: body.cantidad,
-        reg_invima: body.reg_invima || null,
-        unidad_dispensacion_id: body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : null,
+        
+        // Campos manuales obligatorios
+        reg_invima: body.reg_invima,
+        lote: body.lote,
+        cum: body.cum,
+        fecha_fabricacion: fechaFabricacion,
         fecha_expiracion: fechaExpiracion,
-        estado_publicacion_id: body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : BigInt(1)
+        
+        // Imágenes obligatorias
+        imagen_invima: body.imagen_invima,
+        imagen_lote_vencimiento: body.imagen_lote_vencimiento,
+        imagen_principio_activo: body.imagen_principio_activo,
+        
+        unidad_dispensacion_id: body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : null,
+        estado_publicacion_id: body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : BigInt(1),
+        
+        // Campos de la API de datos.gov.co
+        principioactivo: body.principioactivo || null,
+        cantidadcum: body.cantidadcum || null,
+        unidadmedida: body.unidadmedida || null,
+        formafarmaceutica: body.formafarmaceutica || null,
+        titular: body.titular || null,
+        descripcioncomercial: body.descripcioncomercial || null
       },
       include: {
         hospitales: true,
-        medicamentos: true,
         estado_publicacion: true,
         tipo_publicacion: true,
         unidad_dispensacion: true
@@ -223,7 +255,7 @@ export async function POST(request: NextRequest) {
 
     // Crear notificación para OTROS hospitales sobre nueva publicación
     try {
-      const medicamento = nuevaPublicacion.medicamentos?.nombre || "medicamento";
+      const medicamento = nuevaPublicacion.principioactivo || "medicamento";
       const hospital = nuevaPublicacion.hospitales?.nombre || "un hospital";
       const tipo = nuevaPublicacion.tipo_publicacion?.nombre || "medicamento";
 
@@ -276,7 +308,6 @@ export async function POST(request: NextRequest) {
     const publicacionData = {
       id: nuevaPublicacion.id.toString(),
       hospital_id: nuevaPublicacion.hospital_id?.toString(),
-      medicamento_id: nuevaPublicacion.medicamento_id?.toString(),
       descripcion: nuevaPublicacion.descripcion,
       imagen: nuevaPublicacion.imagen,
       tipo_publicacion_id: nuevaPublicacion.tipo_publicacion_id?.toString(),
@@ -285,7 +316,15 @@ export async function POST(request: NextRequest) {
       fecha_expiracion: nuevaPublicacion.fecha_expiracion ? new Date(nuevaPublicacion.fecha_expiracion).toISOString() : null,
       estado_publicacion_id: nuevaPublicacion.estado_publicacion_id?.toString(),
       created_at: nuevaPublicacion.created_at ? new Date(nuevaPublicacion.created_at).toISOString() : null,
-      updated_at: nuevaPublicacion.updated_at ? new Date(nuevaPublicacion.updated_at).toISOString() : null
+      updated_at: nuevaPublicacion.updated_at ? new Date(nuevaPublicacion.updated_at).toISOString() : null,
+      
+      // Campos de la API
+      principioactivo: nuevaPublicacion.principioactivo,
+      cantidadcum: nuevaPublicacion.cantidadcum,
+      unidadmedida: nuevaPublicacion.unidadmedida,
+      formafarmaceutica: nuevaPublicacion.formafarmaceutica,
+      titular: nuevaPublicacion.titular,
+      descripcioncomercial: nuevaPublicacion.descripcioncomercial
     };
 
     return NextResponse.json(
@@ -298,7 +337,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error("❌❌❌ Error al crear publicación:", error);
+    console.error("❌ Error al crear publicación:", error);
     console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack');
     console.error("❌ Error message:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(

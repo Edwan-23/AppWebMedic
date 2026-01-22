@@ -363,77 +363,8 @@ async function seedEstadoPublicacion() {
     console.log('✅ Estados de publicación creados');
 }
 
-// 5. Medida Medicamento
-async function seedMedidaMedicamento() {
-    console.log('Creando medida_medicamento...');
 
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'mcg' },
-        update: {},
-        create: {
-            nombre: 'mcg',
-            descripcion: 'Microgramos'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'mg' },
-        update: {},
-        create: {
-            nombre: 'mg',
-            descripcion: 'Miligramos'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'g' },
-        update: {},
-        create: {
-            nombre: 'g',
-            descripcion: 'gramos'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'ml' },
-        update: {},
-        create: {
-            nombre: 'ml',
-            descripcion: 'Mililitros'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'L' },
-        update: {},
-        create: {
-            nombre: 'L',
-            descripcion: 'Litros'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: 'mg/ml' },
-        update: {},
-        create: {
-            nombre: 'mg/ml',
-            descripcion: 'Miligramos por mililitro'
-        }
-    });
-
-    await prisma.medida_medicamento.upsert({
-        where: { nombre: '%' },
-        update: {},
-        create: {
-            nombre: '%',
-            descripcion: 'Porcentaje'
-        }
-    });
-
-    console.log('✅ Medidas de medicamento creadas');
-}
-
-// 6. Medios de Pago
+// 5. Medios de Pago
 async function seedMediosPago() {
     console.log('Creando medios_pago...');
 
@@ -484,7 +415,7 @@ async function seedMediosPago() {
     console.log('✅ Medios de pago creados');
 }
 
-// 7. Municipios (depende de departamentos)
+// 6. Municipios (depende de departamentos)
 async function seedMunicipios() {
     console.log('Creando municipios...');
 
@@ -7105,15 +7036,6 @@ async function seedMunicipios() {
             departamento_id: 25,
             estado: 1
         }
-
-
-
-
-
-
-
-
-
     ];
 
     await prisma.municipios.createMany({
@@ -7124,7 +7046,7 @@ async function seedMunicipios() {
     console.log('✅ Municipios creados');
 }
 
-// 8. Roles
+// 7. Roles
 async function seedRoles() {
     console.log('👥 Seeding roles...');
 
@@ -7155,140 +7077,7 @@ async function seedRoles() {
     console.log('✅ Roles creados');
 }
 
-// 9. Tipo Medicamento
-async function seedTipoMedicamento() {
-    console.log('Creando tipo_medicamento...');
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Tabletas' },
-        update: {},
-        create: {
-            nombre: 'Tabletas',
-            descripcion: 'Medicamento en forma de tableta'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Cápsulas' },
-        update: {},
-        create: {
-            nombre: 'Cápsulas',
-            descripcion: 'Medicamento en forma de cápsulas'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Grageas' },
-        update: {},
-        create: {
-            nombre: 'Grageas',
-            descripcion: 'Medicamento en forma de grageas'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Polvos' },
-        update: {},
-        create: {
-            nombre: 'Polvos',
-            descripcion: 'Medicamento en forma de polvos'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Jarabes' },
-        update: {},
-        create: {
-            nombre: 'Jarabes',
-            descripcion: 'Medicamento en forma de jarabes'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Suspensiones' },
-        update: {},
-        create: {
-            nombre: 'Suspensiones',
-            descripcion: 'Medicamento en forma de suspensiones'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Soluciones' },
-        update: {},
-        create: {
-            nombre: 'Soluciones',
-            descripcion: 'Medicamento en forma de soluciones'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Ampollas' },
-        update: {},
-        create: {
-            nombre: 'Ampollas',
-            descripcion: 'Medicamento en forma de ampollas'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Viales' },
-        update: {},
-        create: {
-            nombre: 'Viales',
-            descripcion: 'Medicamento en forma de viales'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Nebulizadores' },
-        update: {},
-        create: {
-            nombre: 'Nebulizadores',
-            descripcion: 'Medicamento en forma de nebulizadores'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Crema' },
-        update: {},
-        create: {
-            nombre: 'Crema',
-            descripcion: 'Medicamento en forma de crema'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Gotas' },
-        update: {},
-        create: {
-            nombre: 'Gotas',
-            descripcion: 'Medicamento en forma de gotas'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Frascos' },
-        update: {},
-        create: {
-            nombre: 'Frascos',
-            descripcion: 'Medicamento en forma de frascos'
-        }
-    });
-
-    await prisma.tipo_medicamento.upsert({
-        where: { nombre: 'Inhalador' },
-        update: {},
-        create: {
-            nombre: 'Inhalador',
-            descripcion: 'Medicamento en forma de inhalador'
-        }
-    });
-
-    console.log('✅ Tipos de medicamento creados');
-}
-
-// 10. Tipo Publicación
+// 8. Tipo Publicación
 async function seedTipoPublicacion() {
     console.log('Creando tipo_publicacion...');
 
@@ -7313,7 +7102,7 @@ async function seedTipoPublicacion() {
     console.log('✅ Tipos de publicación creados');
 }
 
-// 11. Transporte
+// 9. Transporte
 async function seedTransporte() {
     console.log('Creando transporte...');
 
@@ -7347,7 +7136,7 @@ async function seedTransporte() {
     console.log('✅ Transportes creados');
 }
 
-// 12. Unidad Dispensación
+// 10. Unidad Dispensación
 async function seedUnidadDispensacion() {
     console.log('Creando unidad_dispensacion...');
 
@@ -7417,7 +7206,7 @@ async function seedUnidadDispensacion() {
     console.log('✅ Unidades de dispensación creadas');
 }
 
-// 13. Usuario Admin 
+// 11. Usuario Admin 
 async function seedUsuarios() {
     console.log('Creando usuario master...');
 
@@ -7435,6 +7224,7 @@ async function seedUsuarios() {
             celular: '3001234567',
             numero_tarjeta_profesional: 'TP-00001',
             rol_id: 1,
+            hospital_id: 1,
             estado_base_id: 1,
             contrasena: hashedPassword,
             fecha_nacimiento: new Date('1990-01-01'),
@@ -7445,7 +7235,7 @@ async function seedUsuarios() {
     console.log('✅ Usuario master creado');
 }
 
-// 14. Hospital
+// 12. Hospital
 async function seedHospital() {
     console.log('Creando hospital...');
     await prisma.hospitales.upsert({
@@ -7477,19 +7267,18 @@ async function main() {
         await seedEstadoBase();
         await seedEstadoEnvio();
         await seedEstadoPublicacion();
-        await seedMedidaMedicamento();
         await seedMediosPago();
         await seedRoles();
-        await seedTipoMedicamento();
         await seedTipoPublicacion();
         await seedTransporte();
         await seedUnidadDispensacion();
         await seedDepartamentos();
         await seedMunicipios();
-        await seedUsuarios();
         await seedHospital();
+        await seedUsuarios();
 
-        console.log('\nSeed completado exitosamente!');
+        console.log('\n✅ Seed completado exitosamente!');
+        console.log('📝 NOTA: Los medicamentos de la API de datos.gov.co');
     } catch (error) {
         console.error('Error durante el seed:', error);
         throw error;

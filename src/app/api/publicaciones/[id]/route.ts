@@ -24,20 +24,6 @@ export async function GET(
             }
           }
         },
-        medicamentos: {
-          select: {
-            id: true,
-            nombre: true,
-            referencia: true,
-            concentracion: true,
-            tipo_medicamento: {
-              select: { nombre: true }
-            },
-            medida_medicamento: {
-              select: { nombre: true }
-            }
-          }
-        },
         estado_publicacion: {
           select: {
             id: true,
@@ -70,17 +56,34 @@ export async function GET(
     const publicacionData = {
       id: Number(publicacion.id),
       hospital_id: publicacion.hospital_id ? Number(publicacion.hospital_id) : null,
-      medicamento_id: publicacion.medicamento_id ? Number(publicacion.medicamento_id) : null,
       descripcion: publicacion.descripcion,
-      imagen: publicacion.imagen,
       tipo_publicacion_id: publicacion.tipo_publicacion_id ? Number(publicacion.tipo_publicacion_id) : null,
       cantidad: publicacion.cantidad,
-      reg_invima: publicacion.reg_invima,
       unidad_dispensacion_id: publicacion.unidad_dispensacion_id ? Number(publicacion.unidad_dispensacion_id) : null,
-      fecha_expiracion: publicacion.fecha_expiracion ? new Date(publicacion.fecha_expiracion).toISOString() : null,
       estado_publicacion_id: publicacion.estado_publicacion_id ? Number(publicacion.estado_publicacion_id) : null,
       created_at: publicacion.created_at ? new Date(publicacion.created_at).toISOString() : null,
       updated_at: publicacion.updated_at ? new Date(publicacion.updated_at).toISOString() : null,
+      
+      // Campos manuales
+      reg_invima: publicacion.reg_invima,
+      lote: publicacion.lote,
+      cum: publicacion.cum,
+      fecha_fabricacion: publicacion.fecha_fabricacion ? new Date(publicacion.fecha_fabricacion).toISOString() : null,
+      fecha_expiracion: publicacion.fecha_expiracion ? new Date(publicacion.fecha_expiracion).toISOString() : null,
+      
+      // Imágenes
+      imagen_invima: publicacion.imagen_invima,
+      imagen_lote_vencimiento: publicacion.imagen_lote_vencimiento,
+      imagen_principio_activo: publicacion.imagen_principio_activo,
+      
+      // Campos de la API
+      principioactivo: publicacion.principioactivo,
+      cantidadcum: publicacion.cantidadcum,
+      unidadmedida: publicacion.unidadmedida,
+      formafarmaceutica: publicacion.formafarmaceutica,
+      titular: publicacion.titular,
+      descripcioncomercial: publicacion.descripcioncomercial,
+      
       hospitales: publicacion.hospitales ? {
         id: Number(publicacion.hospitales.id),
         nombre: publicacion.hospitales.nombre,
@@ -88,14 +91,6 @@ export async function GET(
         celular: publicacion.hospitales.celular,
         telefono: publicacion.hospitales.telefono,
         municipios: publicacion.hospitales.municipios
-      } : null,
-      medicamentos: publicacion.medicamentos ? {
-        id: Number(publicacion.medicamentos.id),
-        nombre: publicacion.medicamentos.nombre,
-        referencia: publicacion.medicamentos.referencia,
-        concentracion: publicacion.medicamentos.concentracion,
-        tipo_medicamento: publicacion.medicamentos.tipo_medicamento,
-        medida_medicamento: publicacion.medicamentos.medida_medicamento
       } : null,
       estado_publicacion: publicacion.estado_publicacion ? {
         id: Number(publicacion.estado_publicacion.id),
@@ -151,26 +146,50 @@ export async function PUT(
       }
 
       // Parsear fecha 
-      const [year, month, day] = body.fecha_expiracion.split('-').map(Number);
-      const fechaExpiracion = new Date(year, month - 1, day);
+      const [yearExp, monthExp, dayExp] = body.fecha_expiracion.split('-').map(Number);
+      const fechaExpiracion = new Date(yearExp, monthExp - 1, dayExp);
 
       // Validar que la fecha sea válida
       if (isNaN(fechaExpiracion.getTime())) {
         return NextResponse.json(
-          { error: "Formato de fecha inválido" },
+          { error: "Formato de fecha de expiración inválido" },
           { status: 400 }
         );
       }
 
-      dataToUpdate.medicamento_id = body.medicamento_id ? BigInt(body.medicamento_id) : undefined;
       dataToUpdate.descripcion = body.descripcion || null;
-      dataToUpdate.imagen = body.imagen !== undefined ? body.imagen : undefined;
       dataToUpdate.tipo_publicacion_id = body.tipo_publicacion_id ? BigInt(body.tipo_publicacion_id) : undefined;
       dataToUpdate.cantidad = body.cantidad;
-      dataToUpdate.reg_invima = body.reg_invima ? String(body.reg_invima) : null;
-      dataToUpdate.unidad_dispensacion_id = body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : undefined;
       dataToUpdate.fecha_expiracion = fechaExpiracion;
       dataToUpdate.estado_publicacion_id = body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : undefined;
+      dataToUpdate.unidad_dispensacion_id = body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : undefined;
+      
+      // Campos manuales obligatorios
+      if (body.reg_invima !== undefined) dataToUpdate.reg_invima = body.reg_invima;
+      if (body.lote !== undefined) dataToUpdate.lote = body.lote;
+      if (body.cum !== undefined) dataToUpdate.cum = body.cum;
+      
+      // Fecha de fabricación
+      if (body.fecha_fabricacion) {
+        const [yearFab, monthFab, dayFab] = body.fecha_fabricacion.split('-').map(Number);
+        const fechaFabricacion = new Date(yearFab, monthFab - 1, dayFab);
+        if (!isNaN(fechaFabricacion.getTime())) {
+          dataToUpdate.fecha_fabricacion = fechaFabricacion;
+        }
+      }
+      
+      // Imágenes
+      if (body.imagen_invima !== undefined) dataToUpdate.imagen_invima = body.imagen_invima;
+      if (body.imagen_lote_vencimiento !== undefined) dataToUpdate.imagen_lote_vencimiento = body.imagen_lote_vencimiento;
+      if (body.imagen_principio_activo !== undefined) dataToUpdate.imagen_principio_activo = body.imagen_principio_activo;
+      
+      // Campos de la API (permitir actualización si se envían)
+      if (body.principioactivo !== undefined) dataToUpdate.principioactivo = body.principioactivo;
+      if (body.cantidadcum !== undefined) dataToUpdate.cantidadcum = body.cantidadcum;
+      if (body.unidadmedida !== undefined) dataToUpdate.unidadmedida = body.unidadmedida;
+      if (body.formafarmaceutica !== undefined) dataToUpdate.formafarmaceutica = body.formafarmaceutica;
+      if (body.titular !== undefined) dataToUpdate.titular = body.titular;
+      if (body.descripcioncomercial !== undefined) dataToUpdate.descripcioncomercial = body.descripcioncomercial;
     }
 
     // Actualizar publicación
@@ -179,7 +198,6 @@ export async function PUT(
       data: dataToUpdate,
       include: {
         hospitales: true,
-        medicamentos: true,
         estado_publicacion: true,
         tipo_publicacion: true,
         unidad_dispensacion: true
@@ -190,16 +208,33 @@ export async function PUT(
     const publicacionData = {
       id: publicacionActualizada.id.toString(),
       hospital_id: publicacionActualizada.hospital_id?.toString(),
-      medicamento_id: publicacionActualizada.medicamento_id?.toString(),
       descripcion: publicacionActualizada.descripcion,
-      imagen: publicacionActualizada.imagen,
       tipo_publicacion_id: publicacionActualizada.tipo_publicacion_id?.toString(),
       cantidad: publicacionActualizada.cantidad,
+      
+      // Campos manuales
       reg_invima: publicacionActualizada.reg_invima,
+      lote: publicacionActualizada.lote,
+      cum: publicacionActualizada.cum,
+      fecha_fabricacion: publicacionActualizada.fecha_fabricacion ? new Date(publicacionActualizada.fecha_fabricacion).toISOString() : null,
       fecha_expiracion: publicacionActualizada.fecha_expiracion ? new Date(publicacionActualizada.fecha_expiracion).toISOString() : null,
+      
+      // Imágenes
+      imagen_invima: publicacionActualizada.imagen_invima,
+      imagen_lote_vencimiento: publicacionActualizada.imagen_lote_vencimiento,
+      imagen_principio_activo: publicacionActualizada.imagen_principio_activo,
+      
       estado_publicacion_id: publicacionActualizada.estado_publicacion_id?.toString(),
       created_at: publicacionActualizada.created_at ? new Date(publicacionActualizada.created_at).toISOString() : null,
-      updated_at: publicacionActualizada.updated_at ? new Date(publicacionActualizada.updated_at).toISOString() : null
+      updated_at: publicacionActualizada.updated_at ? new Date(publicacionActualizada.updated_at).toISOString() : null,
+      
+      // Campos de la API
+      principioactivo: publicacionActualizada.principioactivo,
+      cantidadcum: publicacionActualizada.cantidadcum,
+      unidadmedida: publicacionActualizada.unidadmedida,
+      formafarmaceutica: publicacionActualizada.formafarmaceutica,
+      titular: publicacionActualizada.titular,
+      descripcioncomercial: publicacionActualizada.descripcioncomercial
     };
 
     return NextResponse.json(

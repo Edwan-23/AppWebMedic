@@ -10,15 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
-
-interface Medicamento {
-  id: number;
-  nombre: string;
-  referencia: string;
-  concentracion: number;
-  tipo_medicamento?: { nombre: string };
-  medida_medicamento?: { nombre: string };
-}
+import BuscadorMedicamentos from "@/components/publicaciones/BuscadorMedicamentos";
 
 interface TipoPublicacion {
   id: number;
@@ -49,13 +41,30 @@ interface Publicacion {
   id: number;
   descripcion: string | null;
   cantidad: number;
-  reg_invima: string;
   unidad_dispensacion_id: number | null;
-  fecha_expiracion: string;
   fecha_creacion: string;
   created_at?: string;
-  imagen?: string | null;
-  medicamentos?: Medicamento;
+  
+  // Campos manuales obligatorios
+  reg_invima: string;
+  lote: string;
+  cum: string;
+  fecha_fabricacion: string;
+  fecha_expiracion: string;
+  
+  // Imágenes obligatorias
+  imagen_invima: string;
+  imagen_lote_vencimiento: string;
+  imagen_principio_activo: string;
+  
+  // Campos de la API
+  principioactivo?: string;
+  cantidadcum?: string;
+  unidadmedida?: string;
+  formafarmaceutica?: string;
+  titular?: string;
+  descripcioncomercial?: string;
+  
   estado_publicacion?: EstadoPublicacion;
   tipo_publicacion?: TipoPublicacion;
   unidad_dispensacion?: UnidadDispensacion;
@@ -77,7 +86,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const searchParams = useSearchParams();
   const router = useRouter();
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>(initialData);
-  const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
   const [tiposPublicacion, setTiposPublicacion] = useState<TipoPublicacion[]>([]);
   const [estadosPublicacion, setEstadosPublicacion] = useState<EstadoPublicacion[]>([]);
   const [unidadesDispensacion, setUnidadesDispensacion] = useState<UnidadDispensacion[]>([]);
@@ -95,11 +103,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [metodoEnvio, setMetodoEnvio] = useState<"estandar" | "prioritario">("estandar");
   const [detallesVisibles, setDetallesVisibles] = useState<{ [key: number]: boolean }>({});
 
-  // Estados para búsqueda de medicamentos
-  const [busquedaMedicamento, setBusquedaMedicamento] = useState("");
-  const [mostrarDropdownMedicamentos, setMostrarDropdownMedicamentos] = useState(false);
-  const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState<Medicamento | null>(null);
-
   // Paginación y filtros
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -113,27 +116,61 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
   // Formulario
   const [formData, setFormData] = useState({
-    medicamento_id: "",
     descripcion: "",
     cantidad: "",
+    
+    // Campos manuales obligatorios
     reg_invima: "",
-    unidad_dispensacion_id: "",
+    lote: "",
+    cum: "",
+    fecha_fabricacion: "",
     fecha_expiracion: "",
+    
+    // Imágenes obligatorias
+    imagen_invima: null as string | null,
+    imagen_lote_vencimiento: null as string | null,
+    imagen_principio_activo: null as string | null,
+    
+    unidad_dispensacion_id: "",
     tipo_publicacion_id: "",
     estado_publicacion_id: "1", // Por defecto "Disponible"
-    imagen: null as string | null
+    
+    // Campos de la API
+    principioactivo: "",
+    cantidadcum: "",
+    unidadmedida: "",
+    formafarmaceutica: "",
+    titular: "",
+    descripcioncomercial: ""
   });
 
   const [formDataEditar, setFormDataEditar] = useState({
-    medicamento_id: "",
     descripcion: "",
     cantidad: "",
+    
+    // Campos manuales obligatorios
     reg_invima: "",
-    unidad_dispensacion_id: "",
+    lote: "",
+    cum: "",
+    fecha_fabricacion: "",
     fecha_expiracion: "",
+    
+    // Imágenes obligatorias
+    imagen_invima: null as string | null,
+    imagen_lote_vencimiento: null as string | null,
+    imagen_principio_activo: null as string | null,
+    
+    unidad_dispensacion_id: "",
     tipo_publicacion_id: "",
     estado_publicacion_id: "",
-    imagen: null as string | null
+    
+    // Campos de la API
+    principioactivo: "",
+    cantidadcum: "",
+    unidadmedida: "",
+    formafarmaceutica: "",
+    titular: "",
+    descripcioncomercial: ""
   });
 
   const cargarPublicaciones = useCallback(async () => {
@@ -209,33 +246,13 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     }
   }, [page, searchTerm, estadoFilter, searchParams, orderByCreacion, orderByExpiracion, usuario, cargarPublicaciones]);
 
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.medicamento-dropdown-container')) {
-        setMostrarDropdownMedicamentos(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const cargarDatosIniciales = async () => {
     try {
-      const [resMed, resTipo, resEstado, resUnidades] = await Promise.all([
-        fetch("/api/medicamentos"),
+      const [resTipo, resEstado, resUnidades] = await Promise.all([
         fetch("/api/tipo-publicacion"),
         fetch("/api/estado-publicacion"),
         fetch("/api/unidad-dispensacion")
       ]);
-
-      if (resMed.ok) {
-        const dataMed = await resMed.json();
-        // La API ahora devuelve { medicamentos: [], total: number }
-        setMedicamentos(dataMed.medicamentos || dataMed);
-      }
 
       if (resTipo.ok) {
         const dataTipo = await resTipo.json();
@@ -276,9 +293,25 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.medicamento_id || !formData.cantidad || !formData.fecha_expiracion || !formData.tipo_publicacion_id) {
+    if (!formData.principioactivo || !formData.cantidad || !formData.fecha_expiracion || !formData.tipo_publicacion_id) {
       toast.error("¡Campos requeridos!", {
-        description: "Completa todos los campos obligatorios."
+        description: "Completa todos los campos obligatorios, incluyendo el medicamento."
+      });
+      return;
+    }
+
+    // Validar campos manuales obligatorios
+    if (!formData.reg_invima || !formData.lote || !formData.cum || !formData.fecha_fabricacion) {
+      toast.error("¡Campos requeridos!", {
+        description: "Completa: Registro INVIMA, Lote, CUM y Fecha de Fabricación."
+      });
+      return;
+    }
+
+    // Validar las 3 imágenes obligatorias
+    if (!formData.imagen_invima || !formData.imagen_lote_vencimiento || !formData.imagen_principio_activo) {
+      toast.error("¡Imágenes requeridas!", {
+        description: "Debes subir las 3 imágenes obligatorias (INVIMA, Lote/Vencimiento, Principio Activo)."
       });
       return;
     }
@@ -293,10 +326,9 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           ...formData,
           cantidad: parseInt(formData.cantidad),
           hospital_id: usuario?.hospital_id,
-          medicamento_id: parseInt(formData.medicamento_id),
           tipo_publicacion_id: parseInt(formData.tipo_publicacion_id),
           estado_publicacion_id: parseInt(formData.estado_publicacion_id),
-          imagen: formData.imagen
+          unidad_dispensacion_id: formData.unidad_dispensacion_id ? parseInt(formData.unidad_dispensacion_id) : null
         })
       });
 
@@ -308,15 +340,25 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         setMostrarFormulario(false);
         cargarPublicaciones();
         setFormData({
-          medicamento_id: "",
           descripcion: "",
           cantidad: "",
           reg_invima: "",
-          unidad_dispensacion_id: "",
+          lote: "",
+          cum: "",
+          fecha_fabricacion: "",
           fecha_expiracion: "",
+          imagen_invima: null,
+          imagen_lote_vencimiento: null,
+          imagen_principio_activo: null,
+          unidad_dispensacion_id: "",
           tipo_publicacion_id: "",
           estado_publicacion_id: "1",
-          imagen: null
+          principioactivo: "",
+          cantidadcum: "",
+          unidadmedida: "",
+          formafarmaceutica: "",
+          titular: "",
+          descripcioncomercial: ""
         });
       } else {
         const error = await response.json();
@@ -367,15 +409,31 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const abrirModalEditar = (publicacion: Publicacion) => {
     setPublicacionSeleccionada(publicacion);
     setFormDataEditar({
-      medicamento_id: publicacion.medicamentos?.id?.toString() || "",
       descripcion: publicacion.descripcion || "",
       cantidad: publicacion.cantidad?.toString() || "",
       reg_invima: publicacion.reg_invima || "",
       unidad_dispensacion_id: publicacion.unidad_dispensacion_id?.toString() || "",
+      fecha_fabricacion: publicacion.fecha_fabricacion ? new Date(publicacion.fecha_fabricacion).toISOString().split('T')[0] : "",
       fecha_expiracion: publicacion.fecha_expiracion ? new Date(publicacion.fecha_expiracion).toISOString().split('T')[0] : "",
       tipo_publicacion_id: publicacion.tipo_publicacion?.id?.toString() || "",
       estado_publicacion_id: publicacion.estado_publicacion?.id?.toString() || "",
-      imagen: publicacion.imagen || null
+      
+      // Campos manuales
+      lote: publicacion.lote || "",
+      cum: publicacion.cum || "",
+      
+      // Imágenes
+      imagen_invima: publicacion.imagen_invima || null,
+      imagen_lote_vencimiento: publicacion.imagen_lote_vencimiento || null,
+      imagen_principio_activo: publicacion.imagen_principio_activo || null,
+      
+      // Campos de la API
+      principioactivo: publicacion.principioactivo || "",
+      cantidadcum: publicacion.cantidadcum || "",
+      unidadmedida: publicacion.unidadmedida || "",
+      formafarmaceutica: publicacion.formafarmaceutica || "",
+      titular: publicacion.titular || "",
+      descripcioncomercial: publicacion.descripcioncomercial || ""
     });
     setMostrarModalEditar(true);
   };
@@ -384,15 +442,25 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     setMostrarModalEditar(false);
     setPublicacionSeleccionada(null);
     setFormDataEditar({
-      medicamento_id: "",
       descripcion: "",
       cantidad: "",
       reg_invima: "",
-      unidad_dispensacion_id: "",
+      lote: "",
+      cum: "",
+      fecha_fabricacion: "",
       fecha_expiracion: "",
+      imagen_invima: null,
+      imagen_lote_vencimiento: null,
+      imagen_principio_activo: null,
+      unidad_dispensacion_id: "",
       tipo_publicacion_id: "",
       estado_publicacion_id: "",
-      imagen: null
+      principioactivo: "",
+      cantidadcum: "",
+      unidadmedida: "",
+      formafarmaceutica: "",
+      titular: "",
+      descripcioncomercial: ""
     });
   };
 
@@ -406,7 +474,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
 
     if (!publicacionSeleccionada) return;
 
-    if (!formDataEditar.medicamento_id || !formDataEditar.cantidad || !formDataEditar.reg_invima || !formDataEditar.fecha_expiracion || !formDataEditar.tipo_publicacion_id) {
+    if (!formDataEditar.principioactivo || !formDataEditar.cantidad || !formDataEditar.reg_invima || !formDataEditar.fecha_expiracion || !formDataEditar.tipo_publicacion_id) {
       toast.error("¡Campos requeridos!", {
         description: "Completa todos los campos obligatorios."
       });
@@ -422,11 +490,9 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         body: JSON.stringify({
           ...formDataEditar,
           cantidad: parseInt(formDataEditar.cantidad),
-          reg_invima: parseInt(formDataEditar.reg_invima),
-          medicamento_id: parseInt(formDataEditar.medicamento_id),
           tipo_publicacion_id: parseInt(formDataEditar.tipo_publicacion_id),
           estado_publicacion_id: parseInt(formDataEditar.estado_publicacion_id),
-          imagen: formDataEditar.imagen
+          unidad_dispensacion_id: formDataEditar.unidad_dispensacion_id ? parseInt(formDataEditar.unidad_dispensacion_id) : null
         })
       });
 
@@ -587,9 +653,8 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         const datosSolicitudTemporal = {
           publicacion_id: publicacionASolicitar.id,
           hospital_id: usuario.hospital_id,
-          medicamento_id: publicacionASolicitar.medicamentos?.id,
-          descripcion: `Solicitud de ${publicacionASolicitar.medicamentos?.nombre} - Método: Prioritario`,
-          medicamento_nombre: publicacionASolicitar.medicamentos?.nombre,
+          descripcion: `Solicitud de ${publicacionASolicitar.principioactivo || 'medicamento'} - Método: Prioritario`,
+          medicamento_nombre: publicacionASolicitar.principioactivo,
           cantidad: publicacionASolicitar.cantidad,
           hospital_origen: publicacionASolicitar.hospitales?.nombre
         };
@@ -619,8 +684,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         body: JSON.stringify({
           publicacion_id: publicacionASolicitar.id,
           hospital_id: usuario.hospital_id,
-          medicamento_id: publicacionASolicitar.medicamentos?.id,
-          descripcion: `Solicitud de ${publicacionASolicitar.medicamentos?.nombre} - Método: Estándar`
+          descripcion: `Solicitud de ${publicacionASolicitar.principioactivo || 'medicamento'} - Método: Estándar`
         })
       });
 
@@ -649,7 +713,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       }
 
       toast.success("¡Solicitud enviada!", {
-        description: `Se ha solicitado ${publicacionASolicitar.medicamentos?.nombre}`,
+        description: `Se ha solicitado ${publicacionASolicitar.principioactivo || 'el medicamento'}`,
         id: loadingToast
       });
 
@@ -914,15 +978,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
             Mis Publicaciones
           </button>
           <button
-            onClick={() => {
-              setMostrarFormulario(!mostrarFormulario);
-              // Resetear estados de búsqueda al cerrar
-              if (mostrarFormulario) {
-                setBusquedaMedicamento("");
-                setMedicamentoSeleccionado(null);
-                setMostrarDropdownMedicamentos(false);
-              }
-            }}
+            onClick={() => setMostrarFormulario(!mostrarFormulario)}
             className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg ${mostrarFormulario
               ? "bg-red-500 hover:bg-red-600"
               : "bg-brand-500 hover:bg-brand-600"
@@ -949,6 +1005,23 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
             Nueva Publicación de Medicamento
           </h3>
           <form onSubmit={handleSubmit}>
+            {/* Buscador de Medicamentos por Filtros */}
+            <div className="mb-6">
+              <BuscadorMedicamentos
+                onMedicamentoSeleccionado={(medicamento) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    principioactivo: medicamento.principioactivo,
+                    cantidadcum: medicamento.cantidadcum,
+                    unidadmedida: medicamento.unidadmedida,
+                    formafarmaceutica: medicamento.formafarmaceutica,
+                    titular: medicamento.titular,
+                    descripcioncomercial: medicamento.descripcioncomercial
+                  }));
+                }}
+              />
+            </div>
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
 
               <div>
@@ -961,58 +1034,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   placeholder="Seleccione tipo"
                   required
                 />
-              </div>
-
-              <div className="relative medicamento-dropdown-container">
-                <Label>Medicamento *</Label>
-                <input
-                  type="text"
-                  value={medicamentoSeleccionado ? `${medicamentoSeleccionado.nombre} - ${medicamentoSeleccionado.referencia}` : busquedaMedicamento}
-                  onChange={(e) => {
-                    setBusquedaMedicamento(e.target.value);
-                    setMostrarDropdownMedicamentos(true);
-                    setMedicamentoSeleccionado(null);
-                    setFormData(prev => ({ ...prev, medicamento_id: "" }));
-                  }}
-                  onFocus={() => setMostrarDropdownMedicamentos(true)}
-                  placeholder="Buscar medicamento..."
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-                {mostrarDropdownMedicamentos && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {medicamentos
-                      .filter(med =>
-                        med.nombre.toLowerCase().includes(busquedaMedicamento.toLowerCase()) ||
-                        med.referencia.toLowerCase().includes(busquedaMedicamento.toLowerCase())
-                      )
-                      .slice(0, 50)
-                      .map(med => (
-                        <button
-                          key={med.id}
-                          type="button"
-                          onClick={() => {
-                            setMedicamentoSeleccionado(med);
-                            setBusquedaMedicamento("");
-                            setFormData(prev => ({ ...prev, medicamento_id: med.id.toString() }));
-                            setMostrarDropdownMedicamentos(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                        >
-                          <div className="font-medium">{med.nombre}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Ref: {med.referencia}</div>
-                        </button>
-                      ))}
-                    {medicamentos.filter(med =>
-                      med.nombre.toLowerCase().includes(busquedaMedicamento.toLowerCase()) ||
-                      med.referencia.toLowerCase().includes(busquedaMedicamento.toLowerCase())
-                    ).length === 0 && (
-                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                          No se encontraron medicamentos
-                        </div>
-                      )}
-                  </div>
-                )}
               </div>
 
               <div>
@@ -1048,8 +1069,52 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   name="reg_invima"
                   value={formData.reg_invima}
                   onChange={handleChange}
+                  placeholder="Ej: INVIMA2024M-0012345"
                   required
                   className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                />
+              </div>
+
+              <div>
+                <Label>Lote *</Label>
+                <input
+                  type="text"
+                  name="lote"
+                  value={formData.lote}
+                  onChange={handleChange}
+                  placeholder="Ej: L202401"
+                  required
+                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                />
+              </div>
+
+              <div>
+                <Label>CUM *</Label>
+                <input
+                  type="text"
+                  name="cum"
+                  value={formData.cum}
+                  onChange={handleChange}
+                  placeholder="Código Único de Medicamento"
+                  required
+                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                />
+              </div>
+
+              <div>
+                <DatePicker
+                  id="fecha_fabricacion_crear"
+                  label="Fecha de Fabricación *"
+                  placeholder="Seleccione una fecha"
+                  defaultDate={formData.fecha_fabricacion || undefined}
+                  maxDate={new Date()}
+                  onChange={(selectedDates) => {
+                    if (selectedDates && selectedDates.length > 0) {
+                      const fecha = selectedDates[0];
+                      const fechaFormateada = fecha.toISOString().split('T')[0];
+                      setFormData(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
+                    }
+                  }}
                 />
               </div>
 
@@ -1083,10 +1148,29 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               </div>
 
               <div className="md:col-span-2 lg:col-span-3">
-                <ImageUpload
-                  onImageChange={(base64) => setFormData(prev => ({ ...prev, imagen: base64 }))}
-                  currentImage={formData.imagen}
-                />
+                <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
+                  Imágenes Obligatorias
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <ImageUpload
+                    label="Registro INVIMA *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_invima: url }))}
+                    currentImage={formData.imagen_invima}
+                    tipo="publicacion"
+                  />
+                  <ImageUpload
+                    label="Lote y Fecha de Vencimiento *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_lote_vencimiento: url }))}
+                    currentImage={formData.imagen_lote_vencimiento}
+                    tipo="publicacion"
+                  />
+                  <ImageUpload
+                    label="Principio Activo *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_principio_activo: url }))}
+                    currentImage={formData.imagen_principio_activo}
+                    tipo="publicacion"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1166,12 +1250,12 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 {/* Sección imagen + info básica (móvil) / Solo imagen (desktop) */}
                 <div className="flex gap-3 lg:block">
                   {/* Imagen de la publicación */}
-                  {pub.imagen && (
+                  {pub.imagen_principio_activo && (
                     <div className="flex-shrink-0">
                       <div className="aspect-square w-24 h-24 lg:w-32 lg:h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
                         <Image
-                          src={pub.imagen}
-                          alt={pub.medicamentos?.nombre || "Medicamento"}
+                          src={pub.imagen_principio_activo}
+                          alt={pub.principioactivo || "Medicamento"}
                           width={128}
                           height={128}
                           className="w-full h-full object-cover"
@@ -1183,11 +1267,11 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   {/* Info básica al lado de la imagen (móvil) */}
                   <div className="flex-1 min-w-0 lg:hidden">
                     <h3 className="mb-1 text-base font-semibold text-gray-800 dark:text-white line-clamp-2">
-                      {pub.medicamentos?.nombre}
+                      {pub.principioactivo}
                     </h3>
                     <div className="flex flex-col gap-1.5 text-xs">
                       <span className="text-gray-600 dark:text-gray-400">
-                        Ref: {pub.medicamentos?.referencia}
+                        {pub.descripcioncomercial}
                       </span>
                       <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1209,7 +1293,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-3">
                     {/* Icono de medicamento (solo si no hay imagen) */}
-                    {!pub.imagen && (
+                    {!pub.imagen_principio_activo && (
                       <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                         <svg className="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -1221,17 +1305,17 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                     <div className="flex-1 min-w-0">
                       {/* Título (solo desktop) */}
                       <h3 className="hidden lg:block mb-1 text-lg font-semibold text-gray-800 dark:text-white">
-                        {pub.medicamentos?.nombre}
+                        {pub.principioactivo}
                       </h3>
 
                       <div className="flex flex-wrap gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
-                        {/* Referencia solo desktop */}
+                        {/* Descripción comercial solo desktop */}
                         <span className="hidden lg:inline-block px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
-                          {pub.medicamentos?.referencia}
+                          {pub.descripcioncomercial}
                         </span>
-                        {pub.medicamentos?.tipo_medicamento && (
+                        {pub.formafarmaceutica && (
                           <span className="px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                            {pub.medicamentos.tipo_medicamento.nombre}
+                            {pub.formafarmaceutica}
                           </span>
                         )}
                         <span className="px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
@@ -1280,7 +1364,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                           INVIMA: <span className="font-medium">{pub.reg_invima}</span>
                         </div>
 
-                        {pub.medicamentos?.medida_medicamento && (
+                        {pub.cantidadcum && pub.unidadmedida && (
                           <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                             <Image
                               src="/images/icons/beaker.svg"
@@ -1289,7 +1373,20 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                               height={16}
                               className="w-4 h-4"
                             />
-                            {pub.medicamentos.concentracion} {pub.medicamentos.medida_medicamento.nombre}
+                            <span className="font-medium">{pub.cantidadcum} {pub.unidadmedida}</span>
+                          </div>
+                        )}
+
+                        {pub.titular && (
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                            <Image
+                              src="/images/icons/building-office.svg"
+                              alt="Titular"
+                              width={16}
+                              height={16}
+                              className="w-4 h-4"
+                            />
+                            <span className="font-medium">{pub.titular}</span>
                           </div>
                         )}
                       </div>
@@ -1563,16 +1660,25 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           <form className="flex flex-col" onSubmit={handleUpdate}>
             <div className="px-2 pb-3 overflow-y-auto custom-scrollbar max-h-[450px]">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Medicamento *</Label>
-                  <Select
-                    name="medicamento_id"
-                    value={formDataEditar.medicamento_id}
-                    onChange={(value) => setFormDataEditar(prev => ({ ...prev, medicamento_id: value }))}
-                    options={medicamentos.map(med => ({ value: String(med.id), label: `${med.nombre} - ${med.referencia}` }))}
-                    placeholder="Seleccione un medicamento"
-                    required
-                  />
+                {/* Información del medicamento (solo lectura) */}
+                <div className="col-span-2">
+                  <Label>Medicamento</Label>
+                  <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <p className="text-sm font-medium text-gray-800 dark:text-white">
+                      {formDataEditar.principioactivo}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formDataEditar.descripcioncomercial}
+                    </p>
+                    <div className="flex gap-2 mt-2 text-xs">
+                      <span className="px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                        {formDataEditar.formafarmaceutica}
+                      </span>
+                      <span className="px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                        {formDataEditar.cantidadcum} {formDataEditar.unidadmedida}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
@@ -1625,6 +1731,62 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                   />
                 </div>
 
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Registro INVIMA *</Label>
+                  <input
+                    type="text"
+                    name="reg_invima"
+                    value={formDataEditar.reg_invima}
+                    onChange={handleChangeEditar}
+                    placeholder="Ej: INVIMA2024M-0012345"
+                    required
+                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Lote *</Label>
+                  <input
+                    type="text"
+                    name="lote"
+                    value={formDataEditar.lote}
+                    onChange={handleChangeEditar}
+                    placeholder="Ej: L202401"
+                    required
+                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>CUM *</Label>
+                  <input
+                    type="text"
+                    name="cum"
+                    value={formDataEditar.cum}
+                    onChange={handleChangeEditar}
+                    placeholder="Código Único de Medicamento"
+                    required
+                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <DatePicker
+                    id="fecha_fabricacion_editar"
+                    label="Fecha de Fabricación *"
+                    placeholder="Seleccione una fecha"
+                    defaultDate={formDataEditar.fecha_fabricacion || undefined}
+                    maxDate={new Date()}
+                    onChange={(selectedDates) => {
+                      if (selectedDates && selectedDates.length > 0) {
+                        const fecha = selectedDates[0];
+                        const fechaFormateada = fecha.toISOString().split('T')[0];
+                        setFormDataEditar(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
+                      }
+                    }}
+                  />
+                </div>
+
                 <div className="col-span-2">
                   <DatePicker
                     id="fecha_expiracion_editar"
@@ -1655,10 +1817,29 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                 </div>
 
                 <div className="col-span-2">
-                  <ImageUpload
-                    onImageChange={(base64) => setFormDataEditar(prev => ({ ...prev, imagen: base64 }))}
-                    currentImage={formDataEditar.imagen}
-                  />
+                  <h3 className="mb-4 text-base font-semibold text-gray-800 dark:text-white">
+                    Imágenes Obligatorias
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <ImageUpload
+                      label="Registro INVIMA *"
+                      onImageChange={(url) => setFormDataEditar(prev => ({ ...prev, imagen_invima: url }))}
+                      currentImage={formDataEditar.imagen_invima}
+                      tipo="publicacion"
+                    />
+                    <ImageUpload
+                      label="Lote y Fecha de Vencimiento *"
+                      onImageChange={(url) => setFormDataEditar(prev => ({ ...prev, imagen_lote_vencimiento: url }))}
+                      currentImage={formDataEditar.imagen_lote_vencimiento}
+                      tipo="publicacion"
+                    />
+                    <ImageUpload
+                      label="Principio Activo *"
+                      onImageChange={(url) => setFormDataEditar(prev => ({ ...prev, imagen_principio_activo: url }))}
+                      currentImage={formDataEditar.imagen_principio_activo}
+                      tipo="publicacion"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1701,7 +1882,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               Solicitar Medicamento
             </h4>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {publicacionASolicitar?.medicamentos?.nombre}
+              {publicacionASolicitar?.principioactivo}
             </p>
           </div>
 
@@ -1781,7 +1962,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         onClose={() => setMostrarModalEliminar(false)}
         onConfirm={confirmarEliminarPublicacion}
         title="Eliminar Publicación"
-        message={`¿Estás seguro de que deseas eliminar la publicación de "${publicacionSeleccionada?.medicamentos?.nombre}"? Esta acción no se puede deshacer.`}
+        message={`¿Estás seguro de que deseas eliminar la publicación de "${publicacionSeleccionada?.principioactivo}"? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         variant="danger"
       />
