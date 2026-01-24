@@ -168,7 +168,7 @@ model publicaciones {
   estado_publicacion     estado_publicacion?  @relation(fields: [estado_publicacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   hospitales             hospitales?          @relation(fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   tipo_publicacion       tipo_publicacion?    @relation(fields: [tipo_publicacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  solicitudes            solicitudes[]
+  solicitudes            solicitudes[]        @relation("solicitud_publicacion")
 }
 
 model roles {
@@ -178,18 +178,40 @@ model roles {
 }
 
 model solicitudes {
-  id                 BigInt         @id @default(autoincrement())
-  descripcion        String?
-  publicacion_id     BigInt?
-  hospital_id        BigInt?
-  created_at         DateTime?      @default(now()) @db.Timestamp(6)
-  updated_at         DateTime?      @default(now()) @db.Timestamp(6)
-  hospital_origen_id BigInt?
-  envio              envio[]
-  pagos              pagos[]
-  hospitales         hospitales?    @relation("solicitudes_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  hospital_origen    hospitales?    @relation("solicitudes_hospital_origen", fields: [hospital_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  publicaciones      publicaciones? @relation(fields: [publicacion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                          BigInt               @id @default(autoincrement())
+  publicacion_id              BigInt?
+  hospital_id                 BigInt?
+  created_at                  DateTime?            @default(now()) @db.Timestamp(6)
+  updated_at                  DateTime?            @default(now()) @db.Timestamp(6)
+  hospital_origen_id          BigInt?
+  tipo_solicitud_id           BigInt?
+  valor_propuesto             Decimal?             @db.Decimal(10, 2) // Para compras
+  medicamento_intercambio     String? // Para intercambios - nombre del medicamento propuesto
+  cantidad_intercambio        Int? // Para intercambios - cantidad propuesta
+  fecha_devolucion_estimada   DateTime?            @db.Date // Para préstamos
+  propuesta_descripcion       String? // Descripción de la propuesta
+  estado_solicitud_id         BigInt?
+  envio                       envio[]
+  pagos                       pagos[]
+  hospitales                  hospitales?          @relation("solicitudes_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hospital_origen             hospitales?          @relation("solicitudes_hospital_origen", fields: [hospital_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publicaciones               publicaciones?       @relation("solicitud_publicacion", fields: [publicacion_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  tipo_solicitud              tipo_solicitud?      @relation(fields: [tipo_solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  estado_solicitud            estado_solicitud?    @relation(fields: [estado_solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model estado_solicitud {
+  id           BigInt        @id @default(autoincrement())
+  nombre       String        @unique @db.VarChar(20)
+  descripcion  String?
+  solicitudes  solicitudes[]
+}
+
+model tipo_solicitud {
+  id           BigInt        @id @default(autoincrement())
+  nombre       String        @unique @db.VarChar(20)
+  descripcion  String?
+  solicitudes  solicitudes[]
 }
 
 model tipo_publicacion {

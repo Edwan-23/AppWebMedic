@@ -212,7 +212,7 @@ export default function NotificationDropdown() {
     if (referencia_id) {
       switch (referencia_tipo) {
         case "solicitud":
-          return "/pedidos";
+          return "/solicitudes";
         case "envio":
           return "/envios";
         case "publicacion":

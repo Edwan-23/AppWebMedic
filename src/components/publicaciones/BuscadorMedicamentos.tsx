@@ -60,10 +60,13 @@ export default function BuscadorMedicamentos({
   // Búsqueda de principio activo
   useEffect(() => {
     if (busquedaPrincipio.trim().length >= 3) {
+      console.log(`[BuscadorMedicamentos] Iniciando búsqueda para: "${busquedaPrincipio}"`);
       const timer = setTimeout(() => {
         buscarPrincipios();
       }, 300);
       return () => clearTimeout(timer);
+    } else {
+      console.log(`[BuscadorMedicamentos] Búsqueda muy corta (${busquedaPrincipio.length} caracteres)`);
     }
   }, [busquedaPrincipio]);
 
@@ -136,14 +139,23 @@ export default function BuscadorMedicamentos({
   const buscarPrincipios = async () => {
     setLoadingPrincipio(true);
     try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=principioactivo&principioactivo=${encodeURIComponent(busquedaPrincipio)}`);
+      const url = `/api/medicamentos/buscar?filtro=principioactivo&principioactivo=${encodeURIComponent(busquedaPrincipio)}`;
+      console.log(`[BuscadorMedicamentos] Llamando API: ${url}`);
+      const response = await fetch(url);
+      console.log(`[BuscadorMedicamentos] Respuesta status: ${response.status}`);
       if (response.ok) {
         const data = await response.json();
+        console.log(`[BuscadorMedicamentos] Encontrados ${data.length} principios activos`);
         setOpcionesPrincipio(data);
         setShowDropdownPrincipio(true);
+      } else {
+        const errorData = await response.json();
+        console.error("[BuscadorMedicamentos] Error al buscar principios activos:", errorData);
+        alert(`Error en la búsqueda: ${errorData.error || 'Error desconocido'}`);
       }
     } catch (error) {
-      console.error("Error al buscar principios activos:", error);
+      console.error("[BuscadorMedicamentos] Error al buscar principios activos:", error);
+      alert("No se pudo conectar con la API de medicamentos. Verifique su conexión a Internet.");
     } finally {
       setLoadingPrincipio(false);
     }
@@ -322,6 +334,13 @@ export default function BuscadorMedicamentos({
         {loadingPrincipio && (
           <div className="absolute right-3 top-10">
             <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
+          </div>
+        )}
+        {busquedaPrincipio.length >= 3 && !loadingPrincipio && opcionesPrincipio.length === 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              No se encontraron medicamentos con "{busquedaPrincipio}"
+            </p>
           </div>
         )}
         {showDropdownPrincipio && opcionesPrincipio.length > 0 && (

@@ -30,20 +30,20 @@ export async function GET(request: NextRequest) {
     // Filtrar por hospital (Mis Publicaciones)
     if (hospitalId) {
       where.hospital_id = BigInt(hospitalId);
-      // En Mis Publicaciones, mostrar todas incluidas las solicitadas
+      // En Mis Publicaciones, mostrar todas incluidas las solicitadas y concretadas
       if (estado) {
         where.estado_publicacion = { nombre: estado };
       }
     } else {
-      // Si NO es "Mis Publicaciones", excluir las que están "Solicitadas"
+      // Si NO , excluir las que están "Solicitadas" y "Concretadas"
       if (estado) {
-        // Si hay un filtro de estado específico, usarlo pero asegurar que no sea "Solicitado"
+        // Si hay un filtro de estado específico, usarlo pero asegurar que no sea "Solicitado" ni "Concretada"
         where.estado_publicacion = { nombre: estado };
       } else {
-        // Sin filtro de estado, excluir "Solicitado"
+        // Sin filtro de estado, excluir "Solicitado" y "Concretada"
         where.estado_publicacion = {
           nombre: {
-            not: "Solicitado"
+            notIn: ["Solicitado", "Concretada"]
           }
         };
       }

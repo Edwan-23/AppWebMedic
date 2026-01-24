@@ -48,13 +48,22 @@ export async function GET(req: NextRequest) {
     
     const fullUrl = `${API_URL}?${params.toString()}`;
     
+    console.log(`[Búsqueda Medicamentos] Filtro: ${filtro}, URL: ${fullUrl}`);
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
+    
     const response = await fetch(fullUrl, {
       headers: {
         "X-App-Token": API_TOKEN,
       },
+      signal: controller.signal,
     });
     
+    clearTimeout(timeout);
+    
     if (!response.ok) {
+      console.error(`[Búsqueda Medicamentos] Error de la API: ${response.status} ${response.statusText}`);
       throw new Error(`Error de la API: ${response.statusText}`);
     }
     
@@ -159,10 +168,22 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json({ error: "No se encontraron resultados" }, { status: 404 });
     
-  } catch (error) {
-    console.error("Error en búsqueda de medicamentos:", error);
+  } catch (error: any) {
+    console.error("[Búsqueda Medicamentos] Error:", error);
+    
+    // Si es un error de timeout
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "La búsqueda tardó demasiado tiempo. Intente con un término más específico." },
+        { status: 504 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Error al buscar medicamentos" },
+      { 
+        error: "Error al buscar medicamentos",
+        details: error.message || "Error desconocido"
+      },
       { status: 500 }
     );
   }

@@ -12,6 +12,8 @@ import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
 import BuscadorMedicamentos from "@/components/publicaciones/BuscadorMedicamentos";
 import TarjetaPublicacion from "@/components/publicaciones/TarjetaPublicacion";
+import ModalTipoSolicitud from "@/components/publicaciones/ModalTipoSolicitud";
+import ModalConfirmacionSolicitud, { DatosSolicitud } from "@/components/publicaciones/ModalConfirmacionSolicitud";
 
 interface TipoPublicacion {
   id: number;
@@ -96,12 +98,18 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   const [usuario, setUsuario] = useState<any>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
-  const [mostrarModalSolicitud, setMostrarModalSolicitud] = useState(false);
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [mostrarModalBienvenida, setMostrarModalBienvenida] = useState(false);
   const [publicacionSeleccionada, setPublicacionSeleccionada] = useState<Publicacion | null>(null);
   const [publicacionASolicitar, setPublicacionASolicitar] = useState<Publicacion | null>(null);
-  const [metodoEnvio, setMetodoEnvio] = useState<"estandar" | "prioritario">("estandar");
+  
+  // Estados de solicitud tipificada
+  const [mostrarModalTipoSolicitud, setMostrarModalTipoSolicitud] = useState(false);
+  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
+  const [tipoSolicitudSeleccionado, setTipoSolicitudSeleccionado] = useState<"compra" | "intercambio" | "prestamo" | null>(null);
+  const [misPublicacionesParaIntercambio, setMisPublicacionesParaIntercambio] = useState<Publicacion[]>([]);
+  const [solicitudesRealizadas, setSolicitudesRealizadas] = useState(0);
+  const [contadoresSolicitudes, setContadoresSolicitudes] = useState<Record<string, number>>({});
 
   // Paginación y filtros
   const [page, setPage] = useState(1);
@@ -193,6 +201,11 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         const data = await response.json();
         setPublicaciones(data.publicaciones);
         setTotalPages(data.pagination.totalPages);
+        
+        // Cargar contadores de solicitudes para cada publicación
+        if (usuario?.hospital_id && data.publicaciones.length > 0) {
+          cargarContadores(data.publicaciones);
+        }
       } else {
         toast.error("Error al cargar publicaciones");
       }
@@ -203,6 +216,40 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       setLoading(false);
     }
   }, [searchParams, page, searchTerm, estadoFilter, usuario?.hospital_id, orderByExpiracion, orderByCreacion]);
+
+  const cargarContadores = async (publicaciones: Publicacion[]) => {
+    if (!usuario?.hospital_id) return;
+    
+    try {
+      // Cargar contadores en paralelo para todas las publicaciones
+      const contadores = await Promise.all(
+        publicaciones.map(async (pub) => {
+          try {
+            const res = await fetch(
+              `/api/solicitudes?publicacion_id=${pub.id}&hospital_id=${usuario.hospital_id}&count_only=true`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              return { id: pub.id, count: data.count || 0 };
+            }
+          } catch (error) {
+            console.error(`Error al cargar contador para publicación ${pub.id}:`, error);
+          }
+          return { id: pub.id, count: 0 };
+        })
+      );
+      
+      // Convertir array a objeto para búsqueda rápida
+      const contadoresMap: Record<string, number> = {};
+      contadores.forEach(({ id, count }) => {
+        contadoresMap[id.toString()] = count;
+      });
+      
+      setContadoresSolicitudes(contadoresMap);
+    } catch (error) {
+      console.error("Error al cargar contadores:", error);
+    }
+  };
 
   useEffect(() => {
     const usuarioData = localStorage.getItem("usuario");
@@ -243,8 +290,29 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
   useEffect(() => {
     if (usuario) {
       cargarPublicaciones();
+      cargarMisPublicaciones(); // Cargar publicaciones
     }
   }, [page, searchTerm, estadoFilter, searchParams, orderByCreacion, orderByExpiracion, usuario, cargarPublicaciones]);
+
+  const cargarMisPublicaciones = async () => {
+    if (!usuario?.hospital_id) return;
+
+    try {
+      const params = new URLSearchParams({
+        hospital_id: usuario.hospital_id.toString(),
+        limit: "100", // Cargar hasta 100 publicaciones propias
+        estado: "disponible" // Solo disponibles para intercambiar
+      });
+
+      const response = await fetch(`/api/publicaciones?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMisPublicacionesParaIntercambio(data.publicaciones || []);
+      }
+    } catch (error) {
+      console.error("Error al cargar mis publicaciones:", error);
+    }
+  };
 
   const cargarDatosIniciales = async () => {
     try {
@@ -642,85 +710,74 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     router.push("/perfil");
   };
 
-  const abrirModalSolicitud = (publicacion: Publicacion) => {
+  const abrirModalSolicitud = async (publicacion: Publicacion) => {
     setPublicacionASolicitar(publicacion);
-    setMetodoEnvio("estandar");
-    setMostrarModalSolicitud(true);
+    
+    // Obtener el contador de solicitudes realizadas
+    if (usuario?.hospital_id) {
+      try {
+        const res = await fetch(
+          `/api/solicitudes?publicacion_id=${publicacion.id}&hospital_id=${usuario.hospital_id}&count_only=true`
+        );
+        
+        if (res.ok) {
+          const data = await res.json();
+          setSolicitudesRealizadas(data.count || 0);
+        }
+      } catch (error) {
+        console.error("Error al obtener contador de solicitudes:", error);
+        setSolicitudesRealizadas(0);
+      }
+    }
+    
+    setMostrarModalTipoSolicitud(true);
   };
 
   const cerrarModalSolicitud = () => {
     setPublicacionASolicitar(null);
-    setMostrarModalSolicitud(false);
+    setMostrarModalTipoSolicitud(false);
+    setMostrarModalConfirmacion(false);
+    setTipoSolicitudSeleccionado(null);
     setLoadingSolicitud(false);
   };
 
-  const confirmarSolicitud = async () => {
+  const handleSeleccionarTipoSolicitud = (tipo: "compra" | "intercambio" | "prestamo") => {
+    setTipoSolicitudSeleccionado(tipo);
+    setMostrarModalTipoSolicitud(false);
+    setMostrarModalConfirmacion(true);
+  };
+
+  const handleVolverATipoSolicitud = () => {
+    setMostrarModalConfirmacion(false);
+    setMostrarModalTipoSolicitud(true);
+    setTipoSolicitudSeleccionado(null);
+  };
+
+  const confirmarSolicitud = async (datosSolicitud: DatosSolicitud) => {
     if (!usuario || !publicacionASolicitar) {
       toast.error("Error", { description: "Usuario no autenticado" });
       return;
     }
 
-    if (loadingSolicitud) return; // Prevenir múltiples clics
+    if (loadingSolicitud) return;
     setLoadingSolicitud(true);
 
     const loadingToast = toast.loading("Enviando solicitud...");
 
     try {
-      // 1. Obtener el ID del estado "Solicitado"
-      const resEstados = await fetch("/api/estado-publicacion");
-      if (!resEstados.ok) {
-        throw new Error("No se pudieron cargar los estados");
-      }
-      const estados = await resEstados.json();
-      const estadoSolicitado = estados.find((e: any) => e.nombre.toLowerCase() === "solicitado");
-
-      if (!estadoSolicitado) {
-        toast.error("Error de configuración", {
-          description: "No se encontró el estado 'Solicitado' en la base de datos",
-          id: loadingToast
-        });
-        setLoadingSolicitud(false);
-        return;
-      }
-
-      // 2. Si es prioritario, NO crear solicitud aún, solo guardar datos y redirigir a pago
-      if (metodoEnvio === "prioritario") {
-        // Guardar datos temporalmente en sessionStorage
-        const datosSolicitudTemporal = {
-          publicacion_id: publicacionASolicitar.id,
-          hospital_id: usuario.hospital_id,
-          descripcion: `Solicitud de ${publicacionASolicitar.principioactivo || 'medicamento'} - Método: Prioritario`,
-          medicamento_nombre: publicacionASolicitar.principioactivo,
-          cantidad: publicacionASolicitar.cantidad,
-          hospital_origen: publicacionASolicitar.hospitales?.nombre
-        };
-
-        sessionStorage.setItem('solicitudPrioritaria', JSON.stringify(datosSolicitudTemporal));
-
-        toast.info("Redirigiendo a pago...", {
-          description: "Completa el pago para confirmar tu solicitud prioritaria",
-          id: loadingToast,
-          duration: 2000
-        });
-
-        // Cerrar modal
-        cerrarModalSolicitud();
-
-        // Redirigir a página de pago
-        setTimeout(() => {
-          router.push('/pago-prioritario');
-        }, 500);
-        return;
-      }
-
-      // 3. Para envío estándar, crear la solicitud normalmente
+      // Crear la solicitud con los nuevos campos tipificados
       const resSolicitud = await fetch("/api/solicitudes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicacion_id: publicacionASolicitar.id,
           hospital_id: usuario.hospital_id,
-          descripcion: `Solicitud de ${publicacionASolicitar.principioactivo || 'medicamento'} - Método: Estándar`
+          tipo_solicitud: datosSolicitud.tipo_solicitud,
+          propuesta_descripcion: datosSolicitud.propuesta_descripcion,
+          valor_propuesto: datosSolicitud.valor_propuesto,
+          medicamento_intercambio: datosSolicitud.medicamento_intercambio,
+          cantidad_intercambio: datosSolicitud.cantidad_intercambio,
+          fecha_devolucion_estimada: datosSolicitud.fecha_devolucion_estimada
         })
       });
 
@@ -734,27 +791,15 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         return;
       }
 
-      // 4. Para envío estándar, actualizar el estado de la publicación a "Solicitado"
-      const resActualizar = await fetch(`/api/publicaciones/${publicacionASolicitar.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          estado_publicacion_id: estadoSolicitado.id
-        })
-      });
-
-      if (!resActualizar.ok) {
-        console.error("Error al actualizar estado de publicación");
-        // Continuar aunque falle la actualización del estado
-      }
+      const tipoTexto = datosSolicitud.tipo_solicitud === "compra" ? "compra" : 
+                        datosSolicitud.tipo_solicitud === "intercambio" ? "intercambio" : "préstamo";
 
       toast.success("¡Solicitud enviada!", {
-        description: `Se ha solicitado ${publicacionASolicitar.principioactivo || 'el medicamento'}`,
+        description: `Tu solicitud de ${tipoTexto} ha sido enviada al hospital`,
         id: loadingToast
       });
 
       cerrarModalSolicitud();
-      // Recargar para actualizar la lista y remover la publicación solicitada
       await cargarPublicaciones();
 
     } catch (error) {
@@ -1312,6 +1357,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
               abrirModalEditar={abrirModalEditar}
               handleSolicitar={handleSolicitar}
               copiarAlPortapapeles={copiarAlPortapapeles}
+              solicitudesRealizadas={contadoresSolicitudes[pub.id.toString()] || 0}
             />
           ))}
         </div>
@@ -1615,87 +1661,28 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
         </div>
       </Modal>
 
-      {/* Modal de Solicitud */}
-      <Modal isOpen={mostrarModalSolicitud} onClose={cerrarModalSolicitud} className="max-w-[500px] m-4">
-        <div className="relative w-full p-6 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
-          <div className="mb-6">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Solicitar Medicamento
-            </h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {publicacionASolicitar?.principioactivo}
-            </p>
-          </div>
+      {/* Modal 1: Selección de tipo de solicitud */}
+      <ModalTipoSolicitud
+        isOpen={mostrarModalTipoSolicitud}
+        onClose={cerrarModalSolicitud}
+        onSelectTipo={handleSeleccionarTipoSolicitud}
+        publicacion={publicacionASolicitar}
+        solicitudesRealizadas={solicitudesRealizadas}
+        limiteMaximo={3}
+      />
 
-          <div className="mb-6">
-            <h5 className="mb-4 text-base font-semibold text-gray-800 dark:text-white/90">
-              Método de envío
-            </h5>
-
-            <div className="space-y-3">
-              {/* Opción Estándar */}
-              <label className="flex items-start gap-3 p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                <input
-                  type="radio"
-                  name="metodoEnvio"
-                  value="estandar"
-                  checked={metodoEnvio === "estandar"}
-                  onChange={(e) => setMetodoEnvio(e.target.value as "estandar" | "prioritario")}
-                  className="w-5 h-5 mt-0.5 text-brand-500 focus:ring-brand-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900 dark:text-white">Estándar</span>
-                    <span className="text-sm font-semibold text-green-600">Gratis</span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Entrega en 5-7 días hábiles. Sin costo adicional.
-                  </p>
-                </div>
-              </label>
-
-              {/* Opción Prioritario */}
-              <label className="flex items-start gap-3 p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                <input
-                  type="radio"
-                  name="metodoEnvio"
-                  value="prioritario"
-                  checked={metodoEnvio === "prioritario"}
-                  onChange={(e) => setMetodoEnvio(e.target.value as "estandar" | "prioritario")}
-                  className="w-5 h-5 mt-0.5 text-brand-500 focus:ring-brand-500"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-900 dark:text-white">Prioritario</span>
-                    <span className="text-sm font-semibold text-brand-600">$50.000 COP</span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Entrega en 1-2 días hábiles. Envío express.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mt-6">
-            <button
-              type="button"
-              onClick={cerrarModalSolicitud}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmarSolicitud}
-              disabled={loadingSolicitud}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-success-500 hover:bg-success-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loadingSolicitud ? "Procesando..." : "Confirmar Solicitud"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {/* Modal 2: Confirmación con campos específicos */}
+      {tipoSolicitudSeleccionado && (
+        <ModalConfirmacionSolicitud
+          isOpen={mostrarModalConfirmacion}
+          onClose={cerrarModalSolicitud}
+          onBack={handleVolverATipoSolicitud}
+          onConfirm={confirmarSolicitud}
+          tipoSolicitud={tipoSolicitudSeleccionado}
+          publicacion={publicacionASolicitar}
+          misPublicaciones={misPublicacionesParaIntercambio}
+        />
+      )}
 
       {/* Modal de Confirmación de Eliminación */}
       <ConfirmModal

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 interface Medicamento {
   id: number;
@@ -33,6 +34,8 @@ interface Publicacion {
   id: number;
   cantidad: number;
   fecha_expiracion: string;
+  descripcion?: string;
+  principioactivo?: string;
   hospitales?: Hospital;
 }
 
@@ -50,6 +53,13 @@ interface Solicitud {
   id: number;
   descripcion: string | null;
   created_at: string;
+  tipo_solicitud?: string | null;
+  valor_propuesto?: number | null;
+  medicamento_intercambio?: string | null;
+  cantidad_intercambio?: number | null;
+  fecha_devolucion_estimada?: string | null;
+  propuesta_descripcion?: string | null;
+  estado_solicitud?: string | null;
   medicamentos?: Medicamento;
   hospitales?: Hospital;
   publicaciones?: Publicacion;
@@ -62,13 +72,16 @@ export default function ListaSolicitudes() {
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
   const [detallesVisibles, setDetallesVisibles] = useState<{ [key: number]: boolean }>({});
+  const [modalAprobar, setModalAprobar] = useState<{ isOpen: boolean; solicitudId: number | null }>({ isOpen: false, solicitudId: null });
+  const [modalRechazar, setModalRechazar] = useState<{ isOpen: boolean; solicitudId: number | null }>({ isOpen: false, solicitudId: null });
+  const [loading2, setLoading2] = useState(false);
 
   // Filtros
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "completada">("");
-  const [misSolicitudes, setMisSolicitudes] = useState(true); // Por defecto mostrar solo mis solicitudes
+  const [filtroEstado, setFiltroEstado] = useState<"" | "Pendiente" | "Completada" | "Historial">("Pendiente");
+  const [tipoSolicitudes, setTipoSolicitudes] = useState<"enviadas" | "entrantes">("enviadas"); // Similar a donaciones
 
   const cargarSolicitudes = useCallback(async () => {
     if (!usuario) return;
@@ -78,10 +91,17 @@ export default function ListaSolicitudes() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "10",
+        tipo: tipoSolicitudes, 
         ...(searchTerm && { search: searchTerm }),
-        ...(filtroEstado && { estado: filtroEstado }),
-        ...(misSolicitudes && usuario.hospital_id && { hospital_id: usuario.hospital_id.toString() })
+        ...(filtroEstado && { estado: filtroEstado })
       });
+
+      // Agregar parámetro según el tipo de vista
+      if (tipoSolicitudes === "enviadas" && usuario.hospital_id) {
+        params.append("hospital_id", usuario.hospital_id.toString());
+      } else if (tipoSolicitudes === "entrantes" && usuario.hospital_id) {
+        params.append("publicacion_hospital_id", usuario.hospital_id.toString());
+      }
 
       const res = await fetch(`/api/solicitudes?${params}`);
       if (!res.ok) throw new Error("Error al cargar solicitudes");
@@ -95,7 +115,7 @@ export default function ListaSolicitudes() {
     } finally {
       setLoading(false);
     }
-  }, [usuario, page, searchTerm, filtroEstado, misSolicitudes]);
+  }, [usuario, page, searchTerm, filtroEstado, tipoSolicitudes]);
 
   useEffect(() => {
     const usuarioData = localStorage.getItem("usuario");
@@ -121,13 +141,64 @@ export default function ListaSolicitudes() {
     if (usuario) {
       cargarSolicitudes();
     }
-  }, [page, searchTerm, filtroEstado, misSolicitudes, usuario, cargarSolicitudes]);
+  }, [page, searchTerm, filtroEstado, tipoSolicitudes, usuario, cargarSolicitudes]);
 
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setFiltroEstado("");
-    setMisSolicitudes(true);
-    setPage(1);
+
+
+  const handleAprobar = async (solicitudId: number) => {
+    setModalAprobar({ isOpen: true, solicitudId });
+  };
+
+  const confirmarAprobar = async () => {
+    if (!modalAprobar.solicitudId) return;
+
+    setLoading2(true);
+    try {
+      const res = await fetch(`/api/solicitudes/${modalAprobar.solicitudId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado_solicitud: "Aceptada" })
+      });
+
+      if (!res.ok) throw new Error("Error al aprobar solicitud");
+
+      toast.success("Solicitud aprobada exitosamente");
+      setModalAprobar({ isOpen: false, solicitudId: null });
+      cargarSolicitudes();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al aprobar la solicitud");
+    } finally {
+      setLoading2(false);
+    }
+  };
+
+  const handleRechazar = async (solicitudId: number) => {
+    setModalRechazar({ isOpen: true, solicitudId });
+  };
+
+  const confirmarRechazar = async () => {
+    if (!modalRechazar.solicitudId) return;
+
+    setLoading2(true);
+    try {
+      const res = await fetch(`/api/solicitudes/${modalRechazar.solicitudId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado_solicitud: "Rechazada" })
+      });
+
+      if (!res.ok) throw new Error("Error al rechazar solicitud");
+
+      toast.success("Solicitud rechazada");
+      setModalRechazar({ isOpen: false, solicitudId: null });
+      cargarSolicitudes();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al rechazar la solicitud");
+    } finally {
+      setLoading2(false);
+    }
   };
 
   const formatearFecha = (fecha: string) => {
@@ -185,31 +256,50 @@ export default function ListaSolicitudes() {
 
   return (
     <div className="space-y-6">
+      {/* Toggle para cambiar entre Mis Solicitudes y Solicitudes Entrantes */}
+      <div className="mb-6 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg w-fit mx-auto">
+        <button
+          onClick={() => {
+            setTipoSolicitudes("enviadas");
+            setPage(1);
+          }}
+          className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            tipoSolicitudes === "enviadas"
+              ? "bg-white dark:bg-gray-800 text-brand-600 dark:text-brand-400 shadow-md"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            Mis Solicitudes
+          </span>
+        </button>
+        <button
+          onClick={() => {
+            setTipoSolicitudes("entrantes");
+            setPage(1);
+          }}
+          className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            tipoSolicitudes === "entrantes"
+              ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-md"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            Solicitudes Entrantes
+          </span>
+        </button>
+      </div>
+
       {/* Filtros superiores */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Botones de filtro rápido */}
         <button
           onClick={() => {
-            setMisSolicitudes(true);
-            setFiltroEstado("");
+            setFiltroEstado("Pendiente");
             setPage(1);
           }}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            misSolicitudes && !filtroEstado
-              ? "bg-blue-500 text-white"
-              : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-          }`}
-        >
-          Mis Solicitudes
-        </button>
-
-        <button
-          onClick={() => {
-            setFiltroEstado("pendiente");
-            setPage(1);
-          }}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            filtroEstado === "pendiente"
+            filtroEstado === "Pendiente"
               ? "bg-yellow-500 text-white"
               : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
           }`}
@@ -219,16 +309,33 @@ export default function ListaSolicitudes() {
 
         <button
           onClick={() => {
-            setFiltroEstado("completada");
+            setFiltroEstado("Completada");
             setPage(1);
           }}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            filtroEstado === "completada"
+            filtroEstado === "Completada"
               ? "bg-green-500 text-white"
               : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
           }`}
         >
           Completadas
+        </button>
+
+        <button
+          onClick={() => {
+            setFiltroEstado("Historial");
+            setPage(1);
+          }}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+            filtroEstado === "Historial"
+              ? "bg-gray-500 text-white"
+              : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Historial
         </button>
 
         {/* Buscador */}
@@ -244,16 +351,6 @@ export default function ListaSolicitudes() {
             className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-
-        {/* Botón limpiar filtros */}
-        {(searchTerm || filtroEstado) && (
-          <button
-            onClick={handleClearFilters}
-            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
-          >
-            Limpiar filtros
-          </button>
-        )}
       </div>
 
       {/* Lista de solicitudes */}
@@ -296,23 +393,91 @@ export default function ListaSolicitudes() {
                     {/* Medicamento */}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {solicitud.medicamentos?.nombre || "Medicamento no especificado"}
+                        {solicitud.publicaciones?.principioactivo || solicitud.publicaciones?.descripcion || "Medicamento no especificado"}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Ref: {solicitud.medicamentos?.referencia || "N/A"}
-                        {solicitud.medicamentos?.tipo_medicamento && (
-                          <span className="ml-2">
-                            • {solicitud.medicamentos.tipo_medicamento.nombre}
-                          </span>
-                        )}
-                      </p>
+                      {solicitud.publicaciones && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Cantidad disponible: {solicitud.publicaciones.cantidad}
+                          {solicitud.publicaciones.fecha_expiracion && (
+                            <span className="ml-2">
+                              • Vence: {formatearFecha(solicitud.publicaciones.fecha_expiracion)}
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Descripción */}
-                    {solicitud.descripcion && (
+                    {/* Tipo de solicitud y propuesta */}
+                    {solicitud.tipo_solicitud && (
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            solicitud.tipo_solicitud === "compra" 
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                              : solicitud.tipo_solicitud === "intercambio"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                              : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                          }`}>
+                            {solicitud.tipo_solicitud === "compra" && "💰 Compra"}
+                            {solicitud.tipo_solicitud === "intercambio" && "🔄 Intercambio"}
+                            {solicitud.tipo_solicitud === "prestamo" && "🤝 Préstamo"}
+                          </span>
+                        </div>
+                        
+                        {/* Información específica del tipo */}
+                        {solicitud.tipo_solicitud === "compra" && solicitud.valor_propuesto && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium">Valor propuesto:</span> ${Number(solicitud.valor_propuesto).toLocaleString('es-CO')}
+                          </p>
+                        )}
+                        
+                        {solicitud.tipo_solicitud === "intercambio" && solicitud.medicamento_intercambio && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium">Ofrece:</span> {solicitud.medicamento_intercambio} 
+                            ({solicitud.cantidad_intercambio} unidades)
+                          </p>
+                        )}
+                        
+                        {solicitud.tipo_solicitud === "prestamo" && solicitud.fecha_devolucion_estimada && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium">Devolución estimada:</span> {formatearFecha(solicitud.fecha_devolucion_estimada)}
+                          </p>
+                        )}
+                        
+                        {solicitud.propuesta_descripcion && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                            "{solicitud.propuesta_descripcion}"
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Descripción (solo si no hay tipo de solicitud) */}
+                    {!solicitud.tipo_solicitud && solicitud.descripcion && (
                       <p className="text-sm text-gray-700 dark:text-gray-300">
                         <span className="font-medium">Descripción:</span> {solicitud.descripcion}
                       </p>
+                    )}
+
+                    {/* Mostrar hospital según el tipo de vista */}
+                    {tipoSolicitudes === "enviadas" && solicitud.publicaciones?.hospitales && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7a3 3 0 013-3h8a3 3 0 013 3v14M9 10h.01M15 10h.01M10 21v-6h4v6M12 8v3M10.5 9.5h3" />
+                        </svg>
+                        <span className="font-medium">Para:</span>
+                        <span>{solicitud.publicaciones.hospitales.nombre}</span>
+                      </div>
+                    )}
+
+                    {tipoSolicitudes === "entrantes" && solicitud.hospitales && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7a3 3 0 013-3h8a3 3 0 013 3v14M9 10h.01M15 10h.01M10 21v-6h4v6M12 8v3M10.5 9.5h3" />
+                        </svg>
+                        <span className="font-medium">De:</span>
+                        <span>{solicitud.hospitales.nombre}</span>
+                      </div>
                     )}
 
                     {/* Fecha de solicitud */}
@@ -324,20 +489,52 @@ export default function ListaSolicitudes() {
                     </div>
                   </div>
 
-                  {/* Estado */}
-                  <div className="flex flex-col items-end gap-2">
+                  {/* Estado y Acciones */}
+                  <div className="flex flex-col items-end gap-3">
+                    {/* Badge de estado */}
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getEstadoBadgeColor(
-                        solicitud.envios_realizados && solicitud.envios_realizados.length > 0
-                          ? solicitud.envios_realizados[0].estado_envio?.estado
-                          : undefined
-                      )}`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                        solicitud.estado_solicitud === "Aceptada"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : solicitud.estado_solicitud === "rechazada"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                          : solicitud.envios_realizados && solicitud.envios_realizados.length > 0
+                          ? getEstadoBadgeColor(solicitud.envios_realizados[0].estado_envio?.estado)
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      }`}
                     >
-                      {/* Mostrar el estado del envío si existe, sino "Pendiente" */}
-                      {solicitud.envios_realizados && solicitud.envios_realizados.length > 0
-                        ? solicitud.envios_realizados[0].estado_envio?.estado || "Pendiente"
-                        : "Pendiente"}
+                      {solicitud.estado_solicitud === "Aceptada" && "Contrato realizado"}
+                      {solicitud.estado_solicitud === "Rechazada" && tipoSolicitudes === "enviadas" && "No concretado"}
+                      {solicitud.estado_solicitud === "Rechazada" && tipoSolicitudes === "entrantes" && "Solicitud rechazada"}
+                      {solicitud.estado_solicitud === "Pendiente" && tipoSolicitudes === "enviadas" && "Esperando respuesta"}
+                      {solicitud.estado_solicitud === "Pendiente" && tipoSolicitudes === "entrantes" && "Pendiente"}
+                      {solicitud.envios_realizados && solicitud.envios_realizados.length > 0 && 
+                        solicitud.envios_realizados[0].estado_envio?.estado}
                     </span>
+
+                    {/* Botones de acción para solicitudes entrantes pendientes */}
+                    {tipoSolicitudes === "entrantes" && solicitud.estado_solicitud === "Pendiente" && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleAprobar(solicitud.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleRechazar(solicitud.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Rechazar
+                        </button>
+                      </div>
+                    )}
 
                     {/* Botón de Seguimiento o Fecha de Entrega */}
                     {solicitud.envios_realizados && solicitud.envios_realizados.length > 0 && (
@@ -371,14 +568,15 @@ export default function ListaSolicitudes() {
                 </div>
 
                 {/* Botón para mostrar/ocultar datos del hospital */}
-                {solicitud.publicaciones?.hospitales && (
+                {((tipoSolicitudes === "enviadas" && solicitud.publicaciones?.hospitales) || 
+                  (tipoSolicitudes === "entrantes" && solicitud.hospitales)) && (
                   <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
                     <button
                       onClick={() => toggleDetalles(solicitud.id)}
                       className="flex items-center justify-between w-full text-left group"
                     >
                       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-brand-600">
-                        Datos del Hospital
+                        {tipoSolicitudes === "enviadas" ? "Datos del Hospital Publicador" : "Datos del Hospital Solicitante"}
                       </span>
                       <svg
                         className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
@@ -393,7 +591,14 @@ export default function ListaSolicitudes() {
                     </button>
 
                     {/* Panel desplegable con información del hospital */}
-                    {detallesVisibles[solicitud.id] && (
+                    {detallesVisibles[solicitud.id] && (() => {
+                      const hospital = tipoSolicitudes === "enviadas" 
+                        ? solicitud.publicaciones?.hospitales 
+                        : solicitud.hospitales;
+                      
+                      if (!hospital) return null;
+
+                      return (
                       <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3 animate-in slide-in-from-top">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Nombre */}
@@ -401,11 +606,11 @@ export default function ListaSolicitudes() {
                             <div className="flex-1">
                               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hospital</p>
                               <p className="font-medium text-gray-900 dark:text-white">
-                                {solicitud.publicaciones.hospitales.nombre}
+                                {hospital.nombre}
                               </p>
                             </div>
                             <button
-                              onClick={() => copiarAlPortapapeles(solicitud.publicaciones!.hospitales!.nombre, "Nombre")}
+                              onClick={() => copiarAlPortapapeles(hospital.nombre, "Nombre")}
                               className="ml-2 p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
                               title="Copiar nombre"
                             >
@@ -416,16 +621,16 @@ export default function ListaSolicitudes() {
                           </div>
 
                           {/* Dirección */}
-                          {solicitud.publicaciones.hospitales.direccion && (
+                          {hospital.direccion && (
                             <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
                               <div className="flex-1">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección</p>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                  {solicitud.publicaciones.hospitales.direccion}
+                                  {hospital.direccion}
                                 </p>
                               </div>
                               <button
-                                onClick={() => copiarAlPortapapeles(solicitud.publicaciones!.hospitales!.direccion!, "Dirección")}
+                                onClick={() => copiarAlPortapapeles(hospital.direccion!, "Dirección")}
                                 className="ml-2 p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
                                 title="Copiar dirección"
                               >
@@ -437,19 +642,19 @@ export default function ListaSolicitudes() {
                           )}
 
                           {/* Celular */}
-                          {solicitud.publicaciones.hospitales.celular && (
+                          {hospital.celular && (
                             <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
                               <div className="flex-1">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Celular</p>
                                 <a
-                                  href={`tel:${solicitud.publicaciones.hospitales.celular}`}
+                                  href={`tel:${hospital.celular}`}
                                   className="font-medium text-brand-600 hover:underline"
                                 >
-                                  {solicitud.publicaciones.hospitales.celular}
+                                  {hospital.celular}
                                 </a>
                               </div>
                               <button
-                                onClick={() => copiarAlPortapapeles(solicitud.publicaciones!.hospitales!.celular!, "Celular")}
+                                onClick={() => copiarAlPortapapeles(hospital.celular!, "Celular")}
                                 className="ml-2 p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
                                 title="Copiar celular"
                               >
@@ -465,19 +670,19 @@ export default function ListaSolicitudes() {
                           )}
 
                           {/* Teléfono */}
-                          {solicitud.publicaciones.hospitales.telefono && (
+                          {hospital.telefono && (
                             <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
                               <div className="flex-1">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Teléfono</p>
                                 <a
-                                  href={`tel:${solicitud.publicaciones.hospitales.telefono}`}
+                                  href={`tel:${hospital.telefono}`}
                                   className="font-medium text-brand-600 hover:underline"
                                 >
-                                  {solicitud.publicaciones.hospitales.telefono}
+                                  {hospital.telefono}
                                 </a>
                               </div>
                               <button
-                                onClick={() => copiarAlPortapapeles(solicitud.publicaciones!.hospitales!.telefono!, "Teléfono")}
+                                onClick={() => copiarAlPortapapeles(hospital.telefono!, "Teléfono")}
                                 className="ml-2 p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
                                 title="Copiar teléfono"
                               >
@@ -489,7 +694,8 @@ export default function ListaSolicitudes() {
                           )}
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -537,6 +743,32 @@ export default function ListaSolicitudes() {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmación - Aprobar */}
+      <ConfirmModal
+        isOpen={modalAprobar.isOpen}
+        onClose={() => setModalAprobar({ isOpen: false, solicitudId: null })}
+        onConfirm={confirmarAprobar}
+        title="Aprobar Solicitud"
+        message="¿Está seguro de aprobar esta solicitud? Esta acción notificará al hospital solicitante."
+        confirmText="Sí, aprobar"
+        cancelText="Cancelar"
+        isLoading={loading2}
+        variant="info"
+      />
+
+      {/* Modal de Confirmación - Rechazar */}
+      <ConfirmModal
+        isOpen={modalRechazar.isOpen}
+        onClose={() => setModalRechazar({ isOpen: false, solicitudId: null })}
+        onConfirm={confirmarRechazar}
+        title="Rechazar Solicitud"
+        message="¿Está seguro de rechazar esta solicitud? Esta acción moverá la solicitud al historial y notificará al hospital solicitante."
+        confirmText="Sí, rechazar"
+        cancelText="Cancelar"
+        isLoading={loading2}
+        variant="danger"
+      />
     </div>
   );
 }

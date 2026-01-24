@@ -10,7 +10,6 @@ export const metadata = {
 
 const breadcrumbs = [
     { label: "Inicio", path: "/" },
-    { label: "Logística", path: "/pedidos" },
     { label: "Envíos", path: "/envios" }
 ];
 

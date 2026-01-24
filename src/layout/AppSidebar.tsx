@@ -64,7 +64,6 @@ const gestionItems: NavItem[] = [
     icon: <BoxCubeIcon />,
     name: "Logística",
     subItems: [
-      { name: "Pedidos", path: "/pedidos", pro: false },
       { name: "Envíos", path: "/envios", pro: false }
     ],
   },

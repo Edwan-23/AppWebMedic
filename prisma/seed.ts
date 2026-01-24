@@ -360,11 +360,88 @@ async function seedEstadoPublicacion() {
         }
     });
 
+    await prisma.estado_publicacion.upsert({
+        where: { nombre: 'Concretada' },
+        update: {},
+        create: {
+            nombre: 'Concretada',
+            descripcion: 'Publicación concretada mediante solicitud'
+        }
+    });
+
     console.log('✅ Estados de publicación creados');
 }
 
+// 5. Tipos de Solicitud
+async function seedTipoSolicitud() {
+    console.log('Creando tipo_solicitud...');
 
-// 5. Medios de Pago
+    await prisma.tipo_solicitud.upsert({
+        where: { nombre: 'compra' },
+        update: {},
+        create: {
+            nombre: 'compra',
+            descripcion: 'Solicitud para comprar medicamento'
+        }
+    });
+
+    await prisma.tipo_solicitud.upsert({
+        where: { nombre: 'intercambio' },
+        update: {},
+        create: {
+            nombre: 'intercambio',
+            descripcion: 'Solicitud para intercambiar medicamento'
+        }
+    });
+
+    await prisma.tipo_solicitud.upsert({
+        where: { nombre: 'prestamo' },
+        update: {},
+        create: {
+            nombre: 'prestamo',
+            descripcion: 'Solicitud de préstamo temporal de medicamento'
+        }
+    });
+
+    console.log('✅ Tipos de solicitud creados');
+}
+
+// 6. Estados de Solicitud
+async function seedEstadoSolicitud() {
+    console.log('Creando estado_solicitud...');
+
+    await prisma.estado_solicitud.upsert({
+        where: { nombre: 'Pendiente' },
+        update: {},
+        create: {
+            nombre: 'Pendiente',
+            descripcion: 'Solicitud pendiente de revisión'
+        }
+    });
+
+    await prisma.estado_solicitud.upsert({
+        where: { nombre: 'Aceptada' },
+        update: {},
+        create: {
+            nombre: 'Aceptada',
+            descripcion: 'Solicitud aceptada y en proceso'
+        }
+    });
+
+    await prisma.estado_solicitud.upsert({
+        where: { nombre: 'Rechazada' },
+        update: {},
+        create: {
+            nombre: 'Rechazada',
+            descripcion: 'Solicitud rechazada'
+        }
+    });
+
+    console.log('✅ Estados de solicitud creados');
+}
+
+
+// 7. Medios de Pago
 async function seedMediosPago() {
     console.log('Creando medios_pago...');
 
@@ -7065,15 +7142,6 @@ async function seedRoles() {
             nombre: 'Estandar'
         }
     });
-
-    await prisma.roles.upsert({
-        where: { nombre: 'Logistica' },
-        update: {},
-        create: {
-            nombre: 'Logistica'
-        }
-    });
-
     console.log('✅ Roles creados');
 }
 
@@ -7286,6 +7354,8 @@ async function main() {
         await seedEstadoBase();
         await seedEstadoEnvio();
         await seedEstadoPublicacion();
+        await seedTipoSolicitud();
+        await seedEstadoSolicitud();
         await seedMediosPago();
         await seedRoles();
         await seedTipoPublicacion();
