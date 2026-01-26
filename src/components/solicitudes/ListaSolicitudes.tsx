@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import ModalSeleccionEnvio from "@/components/solicitudes/ModalSeleccionEnvio";
+import ModalInfoContacto from "@/components/solicitudes/ModalInfoContacto";
 
 interface Medicamento {
   id: number;
@@ -60,8 +62,10 @@ interface Solicitud {
   fecha_devolucion_estimada?: string | null;
   propuesta_descripcion?: string | null;
   estado_solicitud?: string | null;
+  tipo_envio?: { id: number; nombre: string } | null;
   medicamentos?: Medicamento;
   hospitales?: Hospital;
+  hospital_origen?: Hospital;
   publicaciones?: Publicacion;
   envios_realizados?: Envio[];
 }
@@ -75,6 +79,10 @@ export default function ListaSolicitudes() {
   const [modalAprobar, setModalAprobar] = useState<{ isOpen: boolean; solicitudId: number | null }>({ isOpen: false, solicitudId: null });
   const [modalRechazar, setModalRechazar] = useState<{ isOpen: boolean; solicitudId: number | null }>({ isOpen: false, solicitudId: null });
   const [loading2, setLoading2] = useState(false);
+
+  // Estados para envío
+  const [modalSeleccionEnvio, setModalSeleccionEnvio] = useState<{ isOpen: boolean; solicitud: Solicitud | null }>({ isOpen: false, solicitud: null });
+  const [modalInfoContacto, setModalInfoContacto] = useState<{ isOpen: boolean; solicitud: Solicitud | null }>({ isOpen: false, solicitud: null });
 
   // Filtros
   const [page, setPage] = useState(1);
@@ -252,6 +260,64 @@ export default function ListaSolicitudes() {
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  // Funciones para manejo de envío
+  const handleIniciarEnvio = (solicitud: Solicitud) => {
+    setModalSeleccionEnvio({ isOpen: true, solicitud });
+  };
+
+  const handleConfirmarEnvio = async (tipoEnvio: "estandar" | "prioritario") => {
+    const solicitud = modalSeleccionEnvio.solicitud;
+    if (!solicitud) return;
+
+    try {
+      // Guardar el tipo de envío seleccionado en la BD
+      const response = await fetch(`/api/solicitudes/${solicitud.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo_envio: tipoEnvio })
+      });
+
+      if (!response.ok) throw new Error("Error al guardar tipo de envío");
+
+      setModalSeleccionEnvio({ isOpen: false, solicitud: null });
+
+      if (tipoEnvio === "estandar") {
+        // Mostrar modal con información de contacto
+        toast.success("Envío estándar seleccionado");
+        setModalInfoContacto({ isOpen: true, solicitud });
+      } else {
+        // Redirigir a pago prioritario
+        const datosSolicitud = {
+          solicitud_id: solicitud.id,
+          publicacion_id: solicitud.publicaciones?.id,
+          medicamento_nombre: solicitud.publicaciones?.principioactivo || "Medicamento",
+          cantidad: solicitud.publicaciones?.cantidad || 0,
+          hospital_origen: solicitud.publicaciones?.hospitales?.nombre || "Hospital",
+          hospital_destino_id: usuario?.hospital_id
+        };
+
+        sessionStorage.setItem("solicitudEnvioPrioritario", JSON.stringify(datosSolicitud));
+        window.location.href = "/pago-prioritario-envio";
+      }
+
+      // Recargar solicitudes para actualizar el estado
+      cargarSolicitudes();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al confirmar tipo de envío");
+    }
+  };
+
+  const handleVerInformacion = (solicitud: Solicitud) => {
+    setModalInfoContacto({ isOpen: true, solicitud });
+  };
+
+  const handleVerEnvio = (solicitud: Solicitud) => {
+    if (solicitud.envios_realizados && solicitud.envios_realizados.length > 0) {
+      window.location.href = `/envios?envio_id=${solicitud.envios_realizados[0].id}`;
+    }
   };
 
   return (
@@ -536,6 +602,61 @@ export default function ListaSolicitudes() {
                       </div>
                     )}
 
+                    {/* Botón Ver Información para solicitudes entrantes aceptadas con tipo_envio */}
+                    {tipoSolicitudes === "entrantes" && solicitud.estado_solicitud === "Aceptada" && solicitud.tipo_envio && (
+                      <button
+                        onClick={() => handleVerInformacion(solicitud)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Ver Información
+                      </button>
+                    )}
+
+                    {/* Botones de envío para solicitudes aceptadas (Mis Solicitudes) */}
+                    {tipoSolicitudes === "enviadas" && solicitud.estado_solicitud === "Aceptada" && (
+                      <>
+                        {/* Sin tipo de envío seleccionado - Mostrar "Iniciar Envío" */}
+                        {!solicitud.tipo_envio && (!solicitud.envios_realizados || solicitud.envios_realizados.length === 0) && (
+                          <button
+                            onClick={() => handleIniciarEnvio(solicitud)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                          >
+                            Concretar Envío
+                          </button>
+                        )}
+
+                        {/* Envío estándar seleccionado - Mostrar "Ver Información" */}
+                        {solicitud.tipo_envio?.nombre === "Estándar" && (!solicitud.envios_realizados || solicitud.envios_realizados.length === 0) && (
+                          <button
+                            onClick={() => handleVerInformacion(solicitud)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Ver Información
+                          </button>
+                        )}
+
+                        {/* Envío prioritario con envío creado - Mostrar "Ver Envío" */}
+                        {solicitud.tipo_envio?.nombre === "Prioritario" && solicitud.envios_realizados && solicitud.envios_realizados.length > 0 && (
+                          <button
+                            onClick={() => handleVerEnvio(solicitud)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Ver Envío
+                          </button>
+                        )}
+                      </>
+                    )}
+
                     {/* Botón de Seguimiento o Fecha de Entrega */}
                     {solicitud.envios_realizados && solicitud.envios_realizados.length > 0 && (
                       solicitud.envios_realizados[0].estado_envio?.estado?.toLowerCase() === "entregado" ? (
@@ -576,7 +697,7 @@ export default function ListaSolicitudes() {
                       className="flex items-center justify-between w-full text-left group"
                     >
                       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-brand-600">
-                        {tipoSolicitudes === "enviadas" ? "Datos del Hospital Publicador" : "Datos del Hospital Solicitante"}
+                        {tipoSolicitudes === "enviadas" ? "Datos del Hospital Publicador" : "Datos de mi Hospital"}
                       </span>
                       <svg
                         className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
@@ -768,6 +889,29 @@ export default function ListaSolicitudes() {
         cancelText="Cancelar"
         isLoading={loading2}
         variant="danger"
+      />
+
+      {/* Modal de Selección de Envío */}
+      <ModalSeleccionEnvio
+        isOpen={modalSeleccionEnvio.isOpen}
+        onClose={() => setModalSeleccionEnvio({ isOpen: false, solicitud: null })}
+        onConfirm={handleConfirmarEnvio}
+        hospitalDestino={modalSeleccionEnvio.solicitud?.publicaciones?.hospitales}
+        medicamentoNombre={modalSeleccionEnvio.solicitud?.publicaciones?.principioactivo}
+      />
+
+      {/* Modal de Información de Contacto (Envío Estándar) */}
+      <ModalInfoContacto
+        isOpen={modalInfoContacto.isOpen}
+        onClose={() => setModalInfoContacto({ isOpen: false, solicitud: null })}
+        hospitalDestino={
+          tipoSolicitudes === "entrantes" 
+            ? modalInfoContacto.solicitud?.hospital_origen // Si es entrante, mostrar info del que solicitó
+            : modalInfoContacto.solicitud?.publicaciones?.hospitales // Si es enviada, mostrar info del que publicó
+        }
+        medicamentoNombre={modalInfoContacto.solicitud?.publicaciones?.principioactivo}
+        cantidad={modalInfoContacto.solicitud?.publicaciones?.cantidad}
+        esHospitalOrigen={tipoSolicitudes === "entrantes"}
       />
     </div>
   );

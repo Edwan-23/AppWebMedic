@@ -177,6 +177,13 @@ model roles {
   usuarios usuarios[]
 }
 
+model tipo_envio {
+  id          BigInt        @id @default(autoincrement())
+  nombre      String        @unique @db.VarChar(20)
+  descripcion String?
+  solicitudes solicitudes[]
+}
+
 model solicitudes {
   id                          BigInt               @id @default(autoincrement())
   publicacion_id              BigInt?
@@ -191,6 +198,7 @@ model solicitudes {
   fecha_devolucion_estimada   DateTime?            @db.Date // Para préstamos
   propuesta_descripcion       String? // Descripción de la propuesta
   estado_solicitud_id         BigInt?
+  tipo_envio_id               BigInt?
   envio                       envio[]
   pagos                       pagos[]
   hospitales                  hospitales?          @relation("solicitudes_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -198,6 +206,7 @@ model solicitudes {
   publicaciones               publicaciones?       @relation("solicitud_publicacion", fields: [publicacion_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   tipo_solicitud              tipo_solicitud?      @relation(fields: [tipo_solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   estado_solicitud            estado_solicitud?    @relation(fields: [estado_solicitud_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tipo_envio                  tipo_envio?          @relation(fields: [tipo_envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model estado_solicitud {

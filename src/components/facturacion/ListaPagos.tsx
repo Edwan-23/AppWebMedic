@@ -162,7 +162,7 @@ export default function ListaPagos() {
               ? "text-green-600 dark:text-green-400"
               : "text-brand-600 dark:text-brand-400"
           }`}>
-            {tipoPagos === "recibidos" ? "Total Recaudado" : "Total Pagado"}
+            {tipoPagos === "recibidos" ? "Total Recibido" : "Total Pagado"}
           </div>
           <div className={`text-2xl font-bold mt-1 ${
             tipoPagos === "recibidos"
@@ -174,7 +174,7 @@ export default function ListaPagos() {
         </div>
       </div>
 
-            {/* Toggle para cambiar entre Pagos Realizados y Recibidos */}
+            {/* Toggle para cambiar entre Envíos pagados y Recibidos */}
       <div className="mb-6 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg w-fit mx-auto">
         <button
           onClick={() => setTipoPagos("realizados")}
@@ -185,7 +185,7 @@ export default function ListaPagos() {
           }`}
         >
           <span className="flex items-center gap-2">
-            Pagos Realizados
+            Envíos pagados
           </span>
         </button>
         <button

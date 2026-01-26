@@ -9,10 +9,98 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { estado_solicitud } = body;
+    const { estado_solicitud, tipo_envio } = body;
+
+    // Si se está actualizando el tipo de envío
+    if (tipo_envio) {
+      const nombreTipoEnvio = tipo_envio === "estandar" ? "Estándar" : "Prioritario";
+      console.log("[PATCH Solicitud] Buscando tipo_envio:", nombreTipoEnvio);
+      
+      const tipoEnvioData = await prisma.tipo_envio.findFirst({
+        where: { nombre: nombreTipoEnvio }
+      });
+
+      console.log("[PATCH Solicitud] Tipo envío encontrado:", tipoEnvioData);
+
+      if (!tipoEnvioData) {
+        // Verificar qué tipos existen
+        const tiposDisponibles = await prisma.tipo_envio.findMany();
+        console.log("[PATCH Solicitud] Tipos disponibles:", tiposDisponibles);
+        
+        return NextResponse.json(
+          { error: `Tipo de envío '${nombreTipoEnvio}' no encontrado en la base de datos. Tipos disponibles: ${tiposDisponibles.map(t => t.nombre).join(', ') || 'ninguno'}` },
+          { status: 400 }
+        );
+      }
+
+      const solicitudActualizada = await prisma.solicitudes.update({
+        where: { id: BigInt(id) },
+        data: { tipo_envio_id: tipoEnvioData.id },
+        include: {
+          tipo_envio: true,
+          hospital_origen: {
+            select: {
+              id: true,
+              nombre: true
+            }
+          },
+          publicaciones: {
+            select: {
+              id: true,
+              hospital_id: true,
+              principioactivo: true,
+              descripcion: true
+            }
+          }
+        }
+      });
+
+      // Crear notificación para el hospital que publicó
+      if (solicitudActualizada.publicaciones?.hospital_id) {
+        const hospitalSolicitante = solicitudActualizada.hospital_origen?.nombre || "Un hospital";
+        const medicamento = solicitudActualizada.publicaciones.principioactivo || 
+                           solicitudActualizada.publicaciones.descripcion || 
+                           "medicamento";
+        
+        const tipoEnvioTexto = nombreTipoEnvio === "Estándar" ? "envío estándar" : "envío prioritario";
+        const mensaje = `${hospitalSolicitante} ha seleccionado ${tipoEnvioTexto} para ${medicamento}`;
+
+        const nuevaNotificacion = await prisma.notificaciones.create({
+          data: {
+            titulo: `Tipo de envío seleccionado: ${nombreTipoEnvio}`,
+            mensaje,
+            tipo: "envio",
+            hospital_id: solicitudActualizada.publicaciones.hospital_id,
+            referencia_id: solicitudActualizada.id,
+            referencia_tipo: "solicitud"
+          }
+        });
+
+        await notificarClientes(solicitudActualizada.publicaciones.hospital_id, {
+          id: Number(nuevaNotificacion.id),
+          titulo: nuevaNotificacion.titulo,
+          mensaje: nuevaNotificacion.mensaje,
+          tipo: nuevaNotificacion.tipo,
+          hospital_id: Number(solicitudActualizada.publicaciones.hospital_id),
+          leida: false,
+          referencia_id: Number(solicitudActualizada.id),
+          referencia_tipo: "solicitud",
+          created_at: nuevaNotificacion.created_at
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        solicitud: {
+          id: Number(solicitudActualizada.id),
+          tipo_envio_id: solicitudActualizada.tipo_envio_id ? Number(solicitudActualizada.tipo_envio_id) : null,
+          tipo_envio: solicitudActualizada.tipo_envio?.nombre || null
+        }
+      });
+    }
 
     // Validar estado
-    if (!["Aceptada", "Rechazada"].includes(estado_solicitud)) {
+    if (!estado_solicitud || !["Aceptada", "Rechazada"].includes(estado_solicitud)) {
       return NextResponse.json(
         { error: "Estado inválido" },
         { status: 400 }
@@ -85,13 +173,13 @@ export async function PATCH(
                          "medicamento";
       
       const hospitalReceptor = solicitudActualizada.hospitales?.nombre || "Hospital";
-      const mensaje = estado_solicitud === "aceptada"
+      const mensaje = estado_solicitud === "Aceptada"
         ? `${hospitalReceptor} ha aceptado tu solicitud de ${medicamento}`
         : `${hospitalReceptor} ha rechazado tu solicitud de ${medicamento}`;
 
       const nuevaNotificacion = await prisma.notificaciones.create({
         data: {
-          titulo: estado_solicitud === "aceptada" ? "Solicitud aceptada" : "Solicitud rechazada",
+          titulo: estado_solicitud === "Aceptada" ? "Solicitud aceptada" : "Solicitud rechazada",
           mensaje,
           tipo: "solicitud",
           hospital_id: solicitudActualizada.hospital_origen.id,

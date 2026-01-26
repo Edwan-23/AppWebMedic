@@ -311,7 +311,31 @@ async function seedEstadoEnvio() {
     console.log('✅ Estados de envío creados');
 }
 
-// 4. Estado Publicación
+// 4. Tipo Envío
+async function seedTipoEnvio() {
+    console.log('Creando tipo_envio...');
+    await prisma.tipo_envio.upsert({
+        where: { nombre: 'Estándar' },
+        update: {},
+        create: {
+            nombre: 'Estándar',
+            descripcion: 'Envío estándar sin costo, coordinación directa entre hospitales'
+        }
+    });
+
+    await prisma.tipo_envio.upsert({
+        where: { nombre: 'Prioritario' },
+        update: {},
+        create: {
+            nombre: 'Prioritario',
+            descripcion: 'Envío prioritario con seguimiento en tiempo real y transporte especializado'
+        }
+    });
+
+    console.log('✅ Tipos de envío creados');
+}
+
+// 5. Estado Publicación
 async function seedEstadoPublicacion() {
     console.log('Creando estado_publicacion...');
 
@@ -372,7 +396,7 @@ async function seedEstadoPublicacion() {
     console.log('✅ Estados de publicación creados');
 }
 
-// 5. Tipos de Solicitud
+// 6. Tipos de Solicitud
 async function seedTipoSolicitud() {
     console.log('Creando tipo_solicitud...');
 
@@ -406,7 +430,7 @@ async function seedTipoSolicitud() {
     console.log('✅ Tipos de solicitud creados');
 }
 
-// 6. Estados de Solicitud
+// 7. Estados de Solicitud
 async function seedEstadoSolicitud() {
     console.log('Creando estado_solicitud...');
 
@@ -441,7 +465,7 @@ async function seedEstadoSolicitud() {
 }
 
 
-// 7. Medios de Pago
+// 8. Medios de Pago
 async function seedMediosPago() {
     console.log('Creando medios_pago...');
 
@@ -492,7 +516,7 @@ async function seedMediosPago() {
     console.log('✅ Medios de pago creados');
 }
 
-// 6. Municipios (depende de departamentos)
+// 9. Municipios (depende de departamentos)
 async function seedMunicipios() {
     console.log('Creando municipios...');
 
@@ -7123,7 +7147,7 @@ async function seedMunicipios() {
     console.log('✅ Municipios creados');
 }
 
-// 7. Roles
+// 10. Roles
 async function seedRoles() {
     console.log('👥 Seeding roles...');
 
@@ -7145,7 +7169,7 @@ async function seedRoles() {
     console.log('✅ Roles creados');
 }
 
-// 8. Tipo Publicación
+// 11. Tipo Publicación
 async function seedTipoPublicacion() {
     console.log('Creando tipo_publicacion...');
 
@@ -7180,7 +7204,7 @@ async function seedTipoPublicacion() {
     console.log('✅ Tipos de publicación creados');
 }
 
-// 9. Transporte
+// 12. Transporte
 async function seedTransporte() {
     console.log('Creando transporte...');
 
@@ -7214,7 +7238,7 @@ async function seedTransporte() {
     console.log('✅ Transportes creados');
 }
 
-// 10. Unidad Dispensación
+// 13. Unidad Dispensación
 async function seedUnidadDispensacion() {
     console.log('Creando unidad_dispensacion...');
 
@@ -7293,7 +7317,7 @@ async function seedUnidadDispensacion() {
     console.log('✅ Unidades de dispensación creadas');
 }
 
-// 11. Usuario Admin 
+// 14. Usuario Admin 
 async function seedUsuarios() {
     console.log('Creando usuario master...');
 
@@ -7322,7 +7346,7 @@ async function seedUsuarios() {
     console.log('✅ Usuario master creado');
 }
 
-// 12. Hospital
+// 15. Hospital
 async function seedHospital() {
     console.log('Creando hospital...');
     await prisma.hospitales.upsert({
@@ -7356,6 +7380,7 @@ async function main() {
         await seedEstadoPublicacion();
         await seedTipoSolicitud();
         await seedEstadoSolicitud();
+        await seedTipoEnvio();
         await seedMediosPago();
         await seedRoles();
         await seedTipoPublicacion();

@@ -113,6 +113,12 @@ export async function GET(request: NextRequest) {
             nombre: true
           }
         },
+        tipo_envio: {
+          select: {
+            id: true,
+            nombre: true
+          }
+        },
         hospitales: {
           select: {
             id: true,
@@ -120,6 +126,17 @@ export async function GET(request: NextRequest) {
             direccion: true,
             celular: true,
             telefono: true,
+            municipios: { select: { nombre: true } }
+          }
+        },
+        hospital_origen: {
+          select: {
+            id: true,
+            nombre: true,
+            direccion: true,
+            celular: true,
+            telefono: true,
+            correo: true,
             municipios: { select: { nombre: true } }
           }
         },
@@ -173,6 +190,10 @@ export async function GET(request: NextRequest) {
       propuesta_descripcion: solicitud.propuesta_descripcion,
       estado_solicitud: solicitud.estado_solicitud?.nombre || null,
       estado_solicitud_id: solicitud.estado_solicitud_id ? Number(solicitud.estado_solicitud_id) : null,
+      tipo_envio: solicitud.tipo_envio ? {
+        id: Number(solicitud.tipo_envio.id),
+        nombre: solicitud.tipo_envio.nombre
+      } : null,
       created_at: solicitud.created_at?.toISOString(),
       updated_at: solicitud.updated_at?.toISOString(),
       hospitales: solicitud.hospitales ? {
@@ -182,6 +203,15 @@ export async function GET(request: NextRequest) {
         celular: solicitud.hospitales.celular,
         telefono: solicitud.hospitales.telefono,
         municipios: solicitud.hospitales.municipios
+      } : null,
+      hospital_origen: solicitud.hospital_origen ? {
+        id: Number(solicitud.hospital_origen.id),
+        nombre: solicitud.hospital_origen.nombre,
+        direccion: solicitud.hospital_origen.direccion,
+        celular: solicitud.hospital_origen.celular,
+        telefono: solicitud.hospital_origen.telefono,
+        correo: solicitud.hospital_origen.correo,
+        municipios: solicitud.hospital_origen.municipios
       } : null,
       publicaciones: solicitud.publicaciones ? {
         id: Number(solicitud.publicaciones.id),
