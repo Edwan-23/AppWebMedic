@@ -79,9 +79,11 @@ export async function POST(request: NextRequest) {
         medio_pago: true,
         solicitudes: {
           include: {
-            medicamentos: true,
             hospitales: true,
-            publicaciones: true
+            hospital_origen: true,
+            publicaciones: true,
+            tipo_solicitud: true,
+            estado_solicitud: true
           }
         }
       }

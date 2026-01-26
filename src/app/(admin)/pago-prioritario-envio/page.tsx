@@ -146,7 +146,7 @@ export default function PagoPrioritarioEnvio() {
           cedula: formData.cedula,
           telefono: formData.telefono || undefined,
           observaciones: formData.observaciones || undefined,
-          solicitud_id: datosSolicitud.solicitud_id
+          solicitud_id: Number(datosSolicitud.solicitud_id)
         })
       });
 
@@ -157,19 +157,20 @@ export default function PagoPrioritarioEnvio() {
 
       const pagoData = await pagosResponse.json();
 
-      // 2. Obtener el estado de envío "En preparación"
+      // 2. Obtener el estado de envío "Empaquetando"
       const estadosResponse = await fetch("/api/estado-envio");
       if (!estadosResponse.ok) {
         throw new Error("Error al obtener estados de envío");
       }
-      const estados = await estadosResponse.json();
-      const estadoEnPreparacion = estados.find((e: any) => 
-        e.estado?.toLowerCase() === "en preparación" || 
-        e.guia?.toLowerCase().includes("preparación")
+      const estadosData = await estadosResponse.json();
+      const estados = estadosData.estados || estadosData;
+      const estadoEmpaquetando = estados.find((e: any) => 
+        e.estado?.toLowerCase() === "empaquetando" || 
+        e.estado?.toLowerCase().includes("empaquet")
       );
 
-      if (!estadoEnPreparacion) {
-        throw new Error("Estado 'En preparación' no encontrado");
+      if (!estadoEmpaquetando) {
+        throw new Error("Estado 'Empaquetando' no encontrado");
       }
 
       // 3. Crear el envío asociado al pago
@@ -177,13 +178,13 @@ export default function PagoPrioritarioEnvio() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          solicitud_id: datosSolicitud.solicitud_id,
-          hospital_origen_id: datosSolicitud.hospital_destino_id,
-          descripcion: `Envío prioritario - ${datosSolicitud.medicamento_nombre}`,
-          transporte_id: parseInt(formData.transporte_id),
+          solicitud_id: Number(datosSolicitud.solicitud_id),
+          hospital_origen_id: Number(datosSolicitud.hospital_destino_id),
+          descripcion: formData.observaciones || `Envío prioritario - ${datosSolicitud.medicamento_nombre}`,
+          transporte_id: Number(formData.transporte_id),
           fecha_recoleccion: formData.fecha_recoleccion,
           fecha_entrega_estimada: formData.fecha_entrega_estimada,
-          estado_envio_id: estadoEnPreparacion.id
+          estado_envio_id: Number(estadoEmpaquetando.id)
         })
       });
 

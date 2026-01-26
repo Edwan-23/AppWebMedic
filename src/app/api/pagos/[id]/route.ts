@@ -1,6 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const body = await request.json();
+    const { id } = await params;
+    const pagoId = BigInt(id);
+
+    const { envio_id } = body;
+
+    if (!envio_id) {
+      return NextResponse.json(
+        { error: "envio_id es requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el pago con el envío vinculado
+    const pagoActualizado = await prisma.pagos.update({
+      where: { id: pagoId },
+      data: {
+        envio_id: BigInt(envio_id),
+        updated_at: new Date()
+      },
+      include: {
+        solicitudes: true,
+        medio_pago: true
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      mensaje: "Pago vinculado al envío exitosamente",
+      pago: {
+        id: Number(pagoActualizado.id),
+        envio_id: Number(pagoActualizado.envio_id),
+        transaccion: pagoActualizado.transaccion
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Error al vincular pago con envío:", error);
+    
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: "Pago no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Error al vincular el pago con el envío" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -64,13 +64,6 @@ export default function AjustesPage() {
             color: "bg-cyan-500",
         },
         {
-            title: "Medicamentos",
-            description: "Gestión e inventario de los medicamentos.",
-            icon: <TableIcon />,
-            href: "/ajustes/medicamentos",
-            color: "bg-blue-500",
-        },
-        {
             title: "Avisos",
             description: "Publica y gestiona los avisos del sistema.",
             icon: <PlusIcon />,

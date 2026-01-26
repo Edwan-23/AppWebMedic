@@ -129,27 +129,31 @@ export async function POST(
           include: {
             hospitales: true,
             hospital_origen: true,
-            medicamentos: true
+            publicaciones: {
+              include: {
+                hospitales: true,
+                unidad_dispensacion: true
+              }
+            }
           }
         },
         transporte: true,
         encargado_logistica: true,
         donaciones: {
           include: {
-            medicamentos: true
+            hospitales: true,
+            hospital_origen: true,
+            unidad_dispensacion: true
           }
         }
       }
     });
 
-    // Ya no es necesario actualizar estado_envio_id en solicitudes
-    // El estado siempre se lee del envio asociado
-
     // Crear notificaciones automáticas según el estado
     try {
-      const medicamento = envioActualizado.solicitudes?.medicamentos?.nombre || 
+      const medicamento = envioActualizado.solicitudes?.publicaciones?.principioactivo || 
                          (envioActualizado.donaciones && envioActualizado.donaciones.length > 0 
-                           ? envioActualizado.donaciones[0].medicamentos?.nombre 
+                           ? envioActualizado.donaciones[0].principioactivo 
                            : "medicamento");
 
       // Notificar al hospital que RECIBE sobre cambios de estado

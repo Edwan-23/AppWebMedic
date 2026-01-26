@@ -5,21 +5,19 @@ import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   DollarLineIcon,
   GridIcon,
   HeartIcon,
   HorizontaLDots,
   ListIcon,
-  PageIcon,
-  PieChartIcon,
   PlugInIcon,
+  ShippingIcon,
   TableIcon,
   UserCircleIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
+import { Special_Gothic_Expanded_One } from "next/font/google";
 
 type NavItem = {
   name: string;
@@ -61,11 +59,9 @@ const gestionItems: NavItem[] = [
     path: "/donaciones",
   },
   {
-    icon: <BoxCubeIcon />,
-    name: "Logística",
-    subItems: [
-      { name: "Envíos", path: "/envios", pro: false }
-    ],
+    icon: <ShippingIcon />,
+    name: "Envíos",
+    path: "/envios",
   },
   {
     icon: <DollarLineIcon />,

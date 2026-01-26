@@ -196,20 +196,23 @@ export async function GET(request: NextRequest) {
           estado_envio: true,
           solicitudes: {
             include: {
-              medicamentos: true,
               hospitales: true,
               hospital_origen: true,
+              tipo_solicitud: true,
+              estado_solicitud: true,
+              tipo_envio: true,
               publicaciones: {
                 include: {
                   hospitales: true,
-                  unidad_dispensacion: true
+                  unidad_dispensacion: true,
+                  estado_publicacion: true,
+                  tipo_publicacion: true
                 }
               }
             }
           },
           donaciones: {
             include: {
-              medicamentos: true,
               hospitales: true,
               hospital_origen: true,
               unidad_dispensacion: true
@@ -255,11 +258,7 @@ export async function GET(request: NextRequest) {
             id: Number(e.solicitudes.publicaciones.unidad_dispensacion.id),
             nombre: e.solicitudes.publicaciones.unidad_dispensacion.nombre
           } : null,
-          medicamentos: e.solicitudes.medicamentos ? {
-            id: Number(e.solicitudes.medicamentos.id),
-            nombre: e.solicitudes.medicamentos.nombre,
-            referencia: e.solicitudes.medicamentos.referencia
-          } : null,
+          medicamento: e.solicitudes.publicaciones?.principioactivo || "Medicamento no especificado",
           hospitales: e.solicitudes.hospitales ? {
             id: Number(e.solicitudes.hospitales.id),
             nombre: e.solicitudes.hospitales.nombre,

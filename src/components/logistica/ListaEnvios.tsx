@@ -34,7 +34,7 @@ interface Solicitud {
   descripcion?: string;
   cantidad?: number;
   unidad_dispensacion_id?: number;
-  medicamentos?: Medicamento;
+  medicamento?: string;
   hospitales?: Hospital;
   hospital_origen?: Hospital;
   unidad_dispensacion?: {
@@ -48,7 +48,7 @@ interface Donacion {
   descripcion?: string;
   cantidad: number;
   hospital_origen_id?: number;
-  medicamentos?: Medicamento;
+  principioactivo?: string;
   hospitales?: Hospital;
   unidad_dispensacion_id?: number;
   unidad_dispensacion?: {
@@ -794,8 +794,8 @@ export default function ListaEnvios() {
                   <div className="mb-6">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {envio.solicitudes?.medicamentos?.nombre || 
-                         (envio.donaciones && envio.donaciones.length > 0 ? envio.donaciones[0].medicamentos?.nombre : "Medicamento no especificado")}
+                        {envio.solicitudes?.medicamento || 
+                         (envio.donaciones && envio.donaciones.length > 0 ? envio.donaciones[0].principioactivo : "Medicamento no especificado")}
                       </h3>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoBadgeColor(envio.estado_envio?.estado)}`}>
                         {envio.estado_envio?.estado}
@@ -936,7 +936,7 @@ export default function ListaEnvios() {
 
                   {envio.descripcion && (
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                      {envio.descripcion}
+                    {envio.descripcion}
                     </p>
                   )}
 
