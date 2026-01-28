@@ -1,15 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the column `imagen` on the `publicaciones` table. All the data in the column will be lost.
-  - Added the required column `cum` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `fecha_fabricacion` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_invima` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_lote_vencimiento` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_principio_activo` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `lote` to the `publicaciones` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- AlterTable
 ALTER TABLE "publicaciones" DROP COLUMN "imagen",
 ADD COLUMN     "cum" VARCHAR(30) NOT NULL,

@@ -155,7 +155,6 @@ model publicaciones {
   // Campos manuales obligatorios
   reg_invima             String               @db.VarChar(50)
   lote                   String               @db.VarChar(50)
-  cum                    String               @db.VarChar(30)
   fecha_fabricacion      DateTime             @db.Date
   
   // Imágenes obligatorias
@@ -165,7 +164,9 @@ model publicaciones {
   
   // Campos de la API de datos.gov.co
   principioactivo        String?              @db.VarChar(255)
-  cantidadcum            String?              @db.VarChar(50)
+  expedientecum          String?              @db.VarChar(50)
+  consecutivocum         String?              @db.VarChar(50)
+  cantidad_medicamento   String?              @db.VarChar(50) // Cantidad del API (renombrado para no confundir con cantidad de publicación)
   unidadmedida           String?              @db.VarChar(50)
   formafarmaceutica      String?              @db.VarChar(100)
   titular                String?              @db.VarChar(255)
@@ -305,7 +306,6 @@ model donaciones {
   // Campos manuales obligatorios
   reg_invima             String               @db.VarChar(50)
   lote                   String               @db.VarChar(50)
-  cum                    String               @db.VarChar(30)
   fecha_fabricacion      DateTime             @db.Date
   fecha_expiracion       DateTime             @db.Date
   

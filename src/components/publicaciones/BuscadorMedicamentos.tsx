@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import Label from "@/components/form/Label";
 
 interface MedicamentoSeleccionado {
   principioactivo: string;
-  cantidadcum: string;
+  expedientecum: string;
+  consecutivocum: string;
+  cantidad: string;
   unidadmedida: string;
   formafarmaceutica: string;
   titular: string;
@@ -17,476 +20,574 @@ interface BuscadorMedicamentosProps {
   medicamentoInicial?: MedicamentoSeleccionado | null;
 }
 
-export default function BuscadorMedicamentos({ 
+export default function BuscadorMedicamentos({
   onMedicamentoSeleccionado,
-  medicamentoInicial 
+  medicamentoInicial
 }: BuscadorMedicamentosProps) {
-  // Estados para cada filtro
-  const [busquedaPrincipio, setBusquedaPrincipio] = useState("");
+  // Estados para cada filtro ( Expediente → Consecutivo → Principio Activo → siguientes...)
+  const [busquedaExpediente, setBusquedaExpediente] = useState("");
+  const [expedientecum, setExpedientecum] = useState(medicamentoInicial?.expedientecum || "");
+  const [consecutivocum, setConsecutivocum] = useState(medicamentoInicial?.consecutivocum || "");
   const [principioactivo, setPrincipioactivo] = useState(medicamentoInicial?.principioactivo || "");
-  const [cantidadcum, setCantidadcum] = useState(medicamentoInicial?.cantidadcum || "");
+  const [cantidad, setCantidad] = useState(medicamentoInicial?.cantidad || "");
   const [unidadmedida, setUnidadmedida] = useState(medicamentoInicial?.unidadmedida || "");
-  const [unidadreferencia, setUnidadreferencia] = useState("");
+  const [formafarmaceutica, setFormafarmaceutica] = useState(medicamentoInicial?.formafarmaceutica || "");
   const [titular, setTitular] = useState(medicamentoInicial?.titular || "");
   const [descripcioncomercial, setDescripcioncomercial] = useState(medicamentoInicial?.descripcioncomercial || "");
-  const [formafarmaceutica, setFormafarmaceutica] = useState(medicamentoInicial?.formafarmaceutica || "");
 
   // Opciones disponibles para cada filtro
+  const [opcionesExpediente, setOpcionesExpediente] = useState<string[]>([]);
+  const [opcionesConsecutivo, setOpcionesConsecutivo] = useState<string[]>([]);
   const [opcionesPrincipio, setOpcionesPrincipio] = useState<string[]>([]);
   const [opcionesCantidad, setOpcionesCantidad] = useState<string[]>([]);
   const [opcionesUnidadMedida, setOpcionesUnidadMedida] = useState<string[]>([]);
-  const [opcionesUnidadReferencia, setOpcionesUnidadReferencia] = useState<string[]>([]);
+  const [opcionesFormaFarmaceutica, setOpcionesFormaFarmaceutica] = useState<string[]>([]);
   const [opcionesTitular, setOpcionesTitular] = useState<string[]>([]);
   const [opcionesDescripcion, setOpcionesDescripcion] = useState<string[]>([]);
-  const [opcionesFormaFarmaceutica, setOpcionesFormaFarmaceutica] = useState<string[]>([]);
 
-  // Estados de carga y dropdowns
+  // Estados de carga y sugerencias
+  const [loadingExpediente, setLoadingExpediente] = useState(false);
+  const [loadingConsecutivo, setLoadingConsecutivo] = useState(false);
   const [loadingPrincipio, setLoadingPrincipio] = useState(false);
   const [loadingCantidad, setLoadingCantidad] = useState(false);
   const [loadingUnidadMedida, setLoadingUnidadMedida] = useState(false);
-  const [loadingUnidadReferencia, setLoadingUnidadReferencia] = useState(false);
+  const [loadingFormaFarmaceutica, setLoadingFormaFarmaceutica] = useState(false);
   const [loadingTitular, setLoadingTitular] = useState(false);
   const [loadingDescripcion, setLoadingDescripcion] = useState(false);
-  const [loadingFormaFarmaceutica, setLoadingFormaFarmaceutica] = useState(false);
 
-  const [showDropdownPrincipio, setShowDropdownPrincipio] = useState(false);
-  const [showDropdownCantidad, setShowDropdownCantidad] = useState(false);
-  const [showDropdownUnidadMedida, setShowDropdownUnidadMedida] = useState(false);
-  const [showDropdownUnidadReferencia, setShowDropdownUnidadReferencia] = useState(false);
-  const [showDropdownTitular, setShowDropdownTitular] = useState(false);
-  const [showDropdownDescripcion, setShowDropdownDescripcion] = useState(false);
-  const [showDropdownFormaFarmaceutica, setShowDropdownFormaFarmaceutica] = useState(false);
+  const [mostrarSugerenciasExpediente, setMostrarSugerenciasExpediente] = useState(false);
 
-  // Búsqueda de principio activo
+  // Verificar si todos los campos están completos
+  const medicamentoCompleto =
+    expedientecum &&
+    consecutivocum &&
+    principioactivo &&
+    cantidad &&
+    unidadmedida &&
+    formafarmaceutica &&
+    titular &&
+    descripcioncomercial;
+
+  // Llamar al callback cuando se completan todos los campos
   useEffect(() => {
-    if (busquedaPrincipio.trim().length >= 3) {
-      console.log(`[BuscadorMedicamentos] Iniciando búsqueda para: "${busquedaPrincipio}"`);
-      const timer = setTimeout(() => {
-        buscarPrincipios();
-      }, 300);
-      return () => clearTimeout(timer);
-    } else {
-      console.log(`[BuscadorMedicamentos] Búsqueda muy corta (${busquedaPrincipio.length} caracteres)`);
-    }
-  }, [busquedaPrincipio]);
-
-  // Cuando se selecciona principio activo, buscar cantidades
-  useEffect(() => {
-    if (principioactivo) {
-      buscarCantidades();
-    } else {
-      resetearDesdePrincipio();
-    }
-  }, [principioactivo]);
-
-  // Cuando se selecciona cantidad, buscar unidades de medida
-  useEffect(() => {
-    if (cantidadcum && principioactivo) {
-      buscarUnidadesMedida();
-    } else if (!cantidadcum) {
-      resetearDesdeCantidad();
-    }
-  }, [cantidadcum]);
-
-  // Cuando se selecciona unidad de medida, buscar unidades de referencia
-  useEffect(() => {
-    if (unidadmedida && cantidadcum && principioactivo) {
-      buscarUnidadesReferencia();
-    } else if (!unidadmedida) {
-      resetearDesdeUnidadMedida();
-    }
-  }, [unidadmedida]);
-
-  // Cuando se selecciona unidad de referencia, buscar titulares
-  useEffect(() => {
-    if (unidadreferencia && unidadmedida && cantidadcum && principioactivo) {
-      buscarTitulares();
-    } else if (!unidadreferencia) {
-      resetearDesdeUnidadReferencia();
-    }
-  }, [unidadreferencia]);
-
-  // Cuando se selecciona titular, buscar descripciones comerciales
-  useEffect(() => {
-    if (titular && unidadreferencia && unidadmedida && cantidadcum && principioactivo) {
-      buscarDescripciones();
-    } else if (!titular) {
-      resetearDesdeTitular();
-    }
-  }, [titular]);
-
-  // Cuando se selecciona descripción comercial, buscar forma farmacéutica
-  useEffect(() => {
-    if (descripcioncomercial && titular && unidadreferencia && unidadmedida && cantidadcum && principioactivo) {
-      buscarFormaFarmaceutica();
-    }
-  }, [descripcioncomercial]);
-
-  // Cuando se completan todos los campos, notificar al padre
-  useEffect(() => {
-    if (principioactivo && cantidadcum && unidadmedida && formafarmaceutica && titular && descripcioncomercial) {
+    if (medicamentoCompleto) {
       onMedicamentoSeleccionado({
         principioactivo,
-        cantidadcum,
+        expedientecum,
+        consecutivocum,
+        cantidad,
         unidadmedida,
         formafarmaceutica,
         titular,
-        descripcioncomercial
+        descripcioncomercial,
       });
     }
-  }, [principioactivo, cantidadcum, unidadmedida, formafarmaceutica, titular, descripcioncomercial]);
+  }, [medicamentoCompleto]);
 
-  const buscarPrincipios = async () => {
-    setLoadingPrincipio(true);
-    try {
-      const url = `/api/medicamentos/buscar?filtro=principioactivo&principioactivo=${encodeURIComponent(busquedaPrincipio)}`;
-      console.log(`[BuscadorMedicamentos] Llamando API: ${url}`);
-      const response = await fetch(url);
-      console.log(`[BuscadorMedicamentos] Respuesta status: ${response.status}`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[BuscadorMedicamentos] Encontrados ${data.length} principios activos`);
-        setOpcionesPrincipio(data);
-        setShowDropdownPrincipio(true);
-      } else {
-        const errorData = await response.json();
-        console.error("[BuscadorMedicamentos] Error al buscar principios activos:", errorData);
-        alert(`Error en la búsqueda: ${errorData.error || 'Error desconocido'}`);
-      }
-    } catch (error) {
-      console.error("[BuscadorMedicamentos] Error al buscar principios activos:", error);
-      alert("No se pudo conectar con la API de medicamentos. Verifique su conexión a Internet.");
-    } finally {
-      setLoadingPrincipio(false);
-    }
-  };
-
-  const buscarCantidades = async () => {
-    setLoadingCantidad(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=cantidadcum&principioactivo=${encodeURIComponent(principioactivo)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesCantidad(data);
-      }
-    } catch (error) {
-      console.error("Error al buscar cantidades:", error);
-    } finally {
-      setLoadingCantidad(false);
-    }
-  };
-
-  const buscarUnidadesMedida = async () => {
-    setLoadingUnidadMedida(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=unidadmedida&principioactivo=${encodeURIComponent(principioactivo)}&cantidadcum=${encodeURIComponent(cantidadcum)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesUnidadMedida(data);
-      }
-    } catch (error) {
-      console.error("Error al buscar unidades de medida:", error);
-    } finally {
-      setLoadingUnidadMedida(false);
-    }
-  };
-
-  const buscarUnidadesReferencia = async () => {
-    setLoadingUnidadReferencia(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=unidadreferencia&principioactivo=${encodeURIComponent(principioactivo)}&cantidadcum=${encodeURIComponent(cantidadcum)}&unidadmedida=${encodeURIComponent(unidadmedida)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesUnidadReferencia(data);
-      }
-    } catch (error) {
-      console.error("Error al buscar unidades de referencia:", error);
-    } finally {
-      setLoadingUnidadReferencia(false);
-    }
-  };
-
-  const buscarTitulares = async () => {
-    setLoadingTitular(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=titular&principioactivo=${encodeURIComponent(principioactivo)}&cantidadcum=${encodeURIComponent(cantidadcum)}&unidadmedida=${encodeURIComponent(unidadmedida)}&unidadreferencia=${encodeURIComponent(unidadreferencia)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesTitular(data);
-      }
-    } catch (error) {
-      console.error("Error al buscar titulares:", error);
-    } finally {
-      setLoadingTitular(false);
-    }
-  };
-
-  const buscarDescripciones = async () => {
-    setLoadingDescripcion(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=descripcioncomercial&principioactivo=${encodeURIComponent(principioactivo)}&cantidadcum=${encodeURIComponent(cantidadcum)}&unidadmedida=${encodeURIComponent(unidadmedida)}&unidadreferencia=${encodeURIComponent(unidadreferencia)}&titular=${encodeURIComponent(titular)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesDescripcion(data);
-      }
-    } catch (error) {
-      console.error("Error al buscar descripciones:", error);
-    } finally {
-      setLoadingDescripcion(false);
-    }
-  };
-
-  const buscarFormaFarmaceutica = async () => {
-    setLoadingFormaFarmaceutica(true);
-    try {
-      const response = await fetch(`/api/medicamentos/buscar?filtro=formafarmaceutica&principioactivo=${encodeURIComponent(principioactivo)}&cantidadcum=${encodeURIComponent(cantidadcum)}&unidadmedida=${encodeURIComponent(unidadmedida)}&unidadreferencia=${encodeURIComponent(unidadreferencia)}&titular=${encodeURIComponent(titular)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOpcionesFormaFarmaceutica(data);
-        if (data.length === 1) {
-          setFormafarmaceutica(data[0]);
+  // 1. Buscar expedientes cuando se escriben al menos 3 dígitos
+  useEffect(() => {
+    if (busquedaExpediente.length >= 3) {
+      const timer = setTimeout(async () => {
+        setLoadingExpediente(true);
+        const busquedaActual = busquedaExpediente; // Capturar el valor actual
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=expedientecum&busqueda=${encodeURIComponent(busquedaActual)}`
+          );
+          const data = await response.json();
+          // Solo actualizar si la búsqueda no ha cambiado
+          if (busquedaActual === busquedaExpediente && data.opciones) {
+            setOpcionesExpediente(data.opciones);
+            setMostrarSugerenciasExpediente(true);
+          }
+        } catch (error) {
+          console.error("Error buscando expedientes:", error);
+          toast.error("Error al buscar expedientes");
+        } finally {
+          if (busquedaActual === busquedaExpediente) {
+            setLoadingExpediente(false);
+          }
         }
-      }
-    } catch (error) {
-      console.error("Error al buscar forma farmacéutica:", error);
-    } finally {
-      setLoadingFormaFarmaceutica(false);
+      }, 500); // Aumentar debounce a 500ms para evitar búsquedas innecesarias
+      return () => clearTimeout(timer);
+    } else {
+      setOpcionesExpediente([]);
+      setMostrarSugerenciasExpediente(false);
+      setLoadingExpediente(false);
     }
+  }, [busquedaExpediente]);
+
+  // 2. Obtener consecutivos cuando se selecciona expediente
+  useEffect(() => {
+    if (expedientecum) {
+      const fetchConsecutivos = async () => {
+        setLoadingConsecutivo(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=consecutivocum&expedientecum=${encodeURIComponent(expedientecum)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesConsecutivo(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo consecutivos:", error);
+          toast.error("Error al obtener consecutivos");
+        } finally {
+          setLoadingConsecutivo(false);
+        }
+      };
+      fetchConsecutivos();
+
+      // Resetear campos posteriores
+      setConsecutivocum("");
+      setPrincipioactivo("");
+      setCantidad("");
+      setUnidadmedida("");
+      setFormafarmaceutica("");
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [expedientecum]);
+
+  // 3. Obtener principios activos cuando se selecciona consecutivo
+  useEffect(() => {
+    if (consecutivocum && expedientecum) {
+      const fetchPrincipios = async () => {
+        setLoadingPrincipio(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=principioactivo&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesPrincipio(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo principios activos:", error);
+          toast.error("Error al obtener principios activos");
+        } finally {
+          setLoadingPrincipio(false);
+        }
+      };
+      fetchPrincipios();
+
+      // Resetear campos posteriores
+      setPrincipioactivo("");
+      setCantidad("");
+      setUnidadmedida("");
+      setFormafarmaceutica("");
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [consecutivocum, expedientecum]);
+
+  // 4. Obtener cantidades cuando se selecciona principio activo
+  useEffect(() => {
+    if (principioactivo && consecutivocum && expedientecum) {
+      const fetchCantidades = async () => {
+        setLoadingCantidad(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=cantidad&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}&principioactivo=${encodeURIComponent(principioactivo)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesCantidad(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo cantidades:", error);
+          toast.error("Error al obtener cantidades");
+        } finally {
+          setLoadingCantidad(false);
+        }
+      };
+      fetchCantidades();
+
+      // Resetear campos posteriores
+      setCantidad("");
+      setUnidadmedida("");
+      setFormafarmaceutica("");
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [principioactivo, consecutivocum, expedientecum]);
+
+  // 5. Obtener unidades de medida cuando se selecciona cantidad
+  useEffect(() => {
+    if (cantidad && principioactivo && consecutivocum && expedientecum) {
+      const fetchUnidadesMedida = async () => {
+        setLoadingUnidadMedida(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=unidadmedida&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}&principioactivo=${encodeURIComponent(principioactivo)}&cantidad=${encodeURIComponent(cantidad)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesUnidadMedida(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo unidades de medida:", error);
+          toast.error("Error al obtener unidades de medida");
+        } finally {
+          setLoadingUnidadMedida(false);
+        }
+      };
+      fetchUnidadesMedida();
+
+      // Resetear campos posteriores
+      setUnidadmedida("");
+      setFormafarmaceutica("");
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [cantidad, principioactivo, consecutivocum, expedientecum]);
+
+  // 6. Obtener formas farmacéuticas cuando se selecciona unidad de medida
+  useEffect(() => {
+    if (unidadmedida && cantidad && principioactivo && consecutivocum && expedientecum) {
+      const fetchFormasFarmaceuticas = async () => {
+        setLoadingFormaFarmaceutica(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=formafarmaceutica&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}&principioactivo=${encodeURIComponent(principioactivo)}&cantidad=${encodeURIComponent(cantidad)}&unidadmedida=${encodeURIComponent(unidadmedida)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesFormaFarmaceutica(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo formas farmacéuticas:", error);
+          toast.error("Error al obtener formas farmacéuticas");
+        } finally {
+          setLoadingFormaFarmaceutica(false);
+        }
+      };
+      fetchFormasFarmaceuticas();
+
+      // Resetear campos posteriores
+      setFormafarmaceutica("");
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [unidadmedida, cantidad, principioactivo, consecutivocum, expedientecum]);
+
+  // 7. Obtener titulares cuando se selecciona forma farmacéutica
+  useEffect(() => {
+    if (formafarmaceutica && unidadmedida && cantidad && principioactivo && consecutivocum && expedientecum) {
+      const fetchTitulares = async () => {
+        setLoadingTitular(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=titular&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}&principioactivo=${encodeURIComponent(principioactivo)}&cantidad=${encodeURIComponent(cantidad)}&unidadmedida=${encodeURIComponent(unidadmedida)}&formafarmaceutica=${encodeURIComponent(formafarmaceutica)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesTitular(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo titulares:", error);
+          toast.error("Error al obtener titulares");
+        } finally {
+          setLoadingTitular(false);
+        }
+      };
+      fetchTitulares();
+
+      // Resetear campos posteriores
+      setTitular("");
+      setDescripcioncomercial("");
+    }
+  }, [formafarmaceutica, unidadmedida, cantidad, principioactivo, consecutivocum, expedientecum]);
+
+  // 8. Obtener descripciones comerciales cuando se selecciona titular
+  useEffect(() => {
+    if (titular && formafarmaceutica && unidadmedida && cantidad && principioactivo && consecutivocum && expedientecum) {
+      const fetchDescripciones = async () => {
+        setLoadingDescripcion(true);
+        try {
+          const response = await fetch(
+            `/api/medicamentos/buscar?filtro=descripcioncomercial&expedientecum=${encodeURIComponent(expedientecum)}&consecutivocum=${encodeURIComponent(consecutivocum)}&principioactivo=${encodeURIComponent(principioactivo)}&cantidad=${encodeURIComponent(cantidad)}&unidadmedida=${encodeURIComponent(unidadmedida)}&formafarmaceutica=${encodeURIComponent(formafarmaceutica)}&titular=${encodeURIComponent(titular)}`
+          );
+          const data = await response.json();
+          if (data.opciones) {
+            setOpcionesDescripcion(data.opciones);
+          }
+        } catch (error) {
+          console.error("Error obteniendo descripciones:", error);
+          toast.error("Error al obtener descripciones");
+        } finally {
+          setLoadingDescripcion(false);
+        }
+      };
+      fetchDescripciones();
+
+      // Resetear campo posterior
+      setDescripcioncomercial("");
+    }
+  }, [titular, formafarmaceutica, unidadmedida, cantidad, principioactivo, consecutivocum, expedientecum]);
+
+  const handleSeleccionExpediente = (valor: string) => {
+    setExpedientecum(valor);
+    setBusquedaExpediente(valor);
+    setMostrarSugerenciasExpediente(false);
   };
 
-  const resetearDesdePrincipio = () => {
-    setCantidadcum("");
-    setUnidadmedida("");
-    setUnidadreferencia("");
-    setTitular("");
-    setDescripcioncomercial("");
-    setFormafarmaceutica("");
-    setOpcionesCantidad([]);
-    setOpcionesUnidadMedida([]);
-    setOpcionesUnidadReferencia([]);
-    setOpcionesTitular([]);
-    setOpcionesDescripcion([]);
-    setOpcionesFormaFarmaceutica([]);
-  };
-
-  const resetearDesdeCantidad = () => {
-    setUnidadmedida("");
-    setUnidadreferencia("");
-    setTitular("");
-    setDescripcioncomercial("");
-    setFormafarmaceutica("");
-    setOpcionesUnidadMedida([]);
-    setOpcionesUnidadReferencia([]);
-    setOpcionesTitular([]);
-    setOpcionesDescripcion([]);
-    setOpcionesFormaFarmaceutica([]);
-  };
-
-  const resetearDesdeUnidadMedida = () => {
-    setUnidadreferencia("");
-    setTitular("");
-    setDescripcioncomercial("");
-    setFormafarmaceutica("");
-    setOpcionesUnidadReferencia([]);
-    setOpcionesTitular([]);
-    setOpcionesDescripcion([]);
-    setOpcionesFormaFarmaceutica([]);
-  };
-
-  const resetearDesdeUnidadReferencia = () => {
-    setTitular("");
-    setDescripcioncomercial("");
-    setFormafarmaceutica("");
-    setOpcionesTitular([]);
-    setOpcionesDescripcion([]);
-    setOpcionesFormaFarmaceutica([]);
-  };
-
-  const resetearDesdeTitular = () => {
-    setDescripcioncomercial("");
-    setFormafarmaceutica("");
-    setOpcionesDescripcion([]);
-    setOpcionesFormaFarmaceutica([]);
+  const handleInputExpediente = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value.replace(/[^0-9]/g, ''); // Solo números
+    setBusquedaExpediente(valor);
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {/* Filtro 1: Principio Activo */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Paso 1: Expediente CUM - Input con autocompletado */}
       <div className="relative">
-        <Label>Principio Activo *</Label>
+        <Label htmlFor="expedientecum">Expediente CUM *</Label>
         <input
           type="text"
-          value={principioactivo || busquedaPrincipio}
-          onChange={(e) => {
-            setBusquedaPrincipio(e.target.value);
-            setPrincipioactivo("");
-            setShowDropdownPrincipio(false);
-          }}
-          onFocus={() => {
-            if (opcionesPrincipio.length > 0) {
-              setShowDropdownPrincipio(true);
-            }
-          }}
-          placeholder="Escriba al menos 3 caracteres..."
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+          id="expedientecum"
+          value={busquedaExpediente}
+          onChange={handleInputExpediente}
+          placeholder="Escriba al menos 3 dígitos..."
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         />
-        {loadingPrincipio && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
+        {loadingExpediente && (
+          <div className="mt-2 text-sm text-meta-3">Buscando...</div>
         )}
-        {busquedaPrincipio.length >= 3 && !loadingPrincipio && opcionesPrincipio.length === 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              No se encontraron medicamentos con "{busquedaPrincipio}"
-            </p>
-          </div>
-        )}
-        {showDropdownPrincipio && opcionesPrincipio.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {opcionesPrincipio.map((opcion, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => {
-                  setPrincipioactivo(opcion);
-                  setBusquedaPrincipio("");
-                  setShowDropdownPrincipio(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+        {mostrarSugerenciasExpediente && opcionesExpediente.length > 0 && (
+          <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-stroke bg-white shadow-lg dark:border-strokedark dark:bg-boxdark">
+            {opcionesExpediente.map((opcion) => (
+              <div
+                key={opcion}
+                onClick={() => handleSeleccionExpediente(opcion)}
+                className="cursor-pointer px-5 py-3 hover:bg-gray-2 dark:hover:bg-meta-4"
               >
                 {opcion}
-              </button>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Filtro 2: Cantidad CUM */}
-      <div className="relative">
-        <Label>Cantidad CUM *</Label>
+      {/* Paso 2: Consecutivo CUM */}
+      <div>
+        <Label htmlFor="consecutivocum">Consecutivo CUM *</Label>
         <select
-          value={cantidadcum}
-          onChange={(e) => setCantidadcum(e.target.value)}
-          disabled={!principioactivo || loadingCantidad}
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          id="consecutivocum"
+          value={consecutivocum}
+          onChange={(e) => setConsecutivocum(e.target.value)}
+          disabled={!expedientecum || loadingConsecutivo || opcionesConsecutivo.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         >
-          <option value="">Seleccione cantidad</option>
-          {opcionesCantidad.map((opcion, index) => (
-            <option key={index} value={opcion}>{opcion}</option>
+          <option value="">
+            {!expedientecum
+              ? "Primero seleccione el expediente"
+              : loadingConsecutivo
+                ? "Cargando..."
+                : opcionesConsecutivo.length === 0
+                  ? "No hay consecutivos disponibles"
+                  : "Seleccione un consecutivo"}
+          </option>
+          {opcionesConsecutivo.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
           ))}
         </select>
-        {loadingCantidad && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
-        )}
       </div>
 
-      {/* Filtro 3: Unidad de Medida */}
-      <div className="relative">
-        <Label>Unidad de Medida *</Label>
+      {/* Paso 3: Principio Activo */}
+      <div>
+        <Label htmlFor="principioactivo">Principio Activo *</Label>
         <select
+          id="principioactivo"
+          value={principioactivo}
+          onChange={(e) => setPrincipioactivo(e.target.value)}
+          disabled={!consecutivocum || loadingPrincipio || opcionesPrincipio.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+        >
+          <option value="">
+            {!consecutivocum
+              ? "Primero seleccione el consecutivo"
+              : loadingPrincipio
+                ? "Cargando..."
+                : opcionesPrincipio.length === 0
+                  ? "No hay principios activos disponibles"
+                  : "Seleccione un principio activo"}
+          </option>
+          {opcionesPrincipio.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Paso 4: Cantidad */}
+      <div>
+        <Label htmlFor="cantidad">Cantidad *</Label>
+        <select
+          id="cantidad"
+          value={cantidad}
+          onChange={(e) => setCantidad(e.target.value)}
+          disabled={!principioactivo || loadingCantidad || opcionesCantidad.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+        >
+          <option value="">
+            {!principioactivo
+              ? "Primero seleccione el principio activo"
+              : loadingCantidad
+                ? "Cargando..."
+                : opcionesCantidad.length === 0
+                  ? "No hay cantidades disponibles"
+                  : "Seleccione una cantidad"}
+          </option>
+          {opcionesCantidad.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Paso 5: Unidad de Medida */}
+      <div>
+        <Label htmlFor="unidadmedida">Unidad de Medida *</Label>
+        <select
+          id="unidadmedida"
           value={unidadmedida}
           onChange={(e) => setUnidadmedida(e.target.value)}
-          disabled={!cantidadcum || loadingUnidadMedida}
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!cantidad || loadingUnidadMedida || opcionesUnidadMedida.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         >
-          <option value="">Seleccione unidad</option>
-          {opcionesUnidadMedida.map((opcion, index) => (
-            <option key={index} value={opcion}>{opcion}</option>
+          <option value="">
+            {!cantidad
+              ? "Primero seleccione la cantidad"
+              : loadingUnidadMedida
+                ? "Cargando..."
+                : opcionesUnidadMedida.length === 0
+                  ? "No hay unidades disponibles"
+                  : "Seleccione una unidad"}
+          </option>
+          {opcionesUnidadMedida.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
           ))}
         </select>
-        {loadingUnidadMedida && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
-        )}
       </div>
 
-      {/* Filtro 4: Unidad de Referencia */}
-      <div className="relative">
-        <Label>Unidad de Referencia *</Label>
+      {/* Paso 6: Forma Farmacéutica */}
+      <div>
+        <Label htmlFor="formafarmaceutica">Forma Farmacéutica *</Label>
         <select
-          value={unidadreferencia}
-          onChange={(e) => setUnidadreferencia(e.target.value)}
-          disabled={!unidadmedida || loadingUnidadReferencia}
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          id="formafarmaceutica"
+          value={formafarmaceutica}
+          onChange={(e) => setFormafarmaceutica(e.target.value)}
+          disabled={!unidadmedida || loadingFormaFarmaceutica || opcionesFormaFarmaceutica.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         >
-          <option value="">Seleccione referencia</option>
-          {opcionesUnidadReferencia.map((opcion, index) => (
-            <option key={index} value={opcion}>{opcion}</option>
+          <option value="">
+            {!unidadmedida
+              ? "Primero seleccione la unidad de medida"
+              : loadingFormaFarmaceutica
+                ? "Cargando..."
+                : opcionesFormaFarmaceutica.length === 0
+                  ? "No hay formas farmacéuticas disponibles"
+                  : "Seleccione una forma"}
+          </option>
+          {opcionesFormaFarmaceutica.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
           ))}
         </select>
-        {loadingUnidadReferencia && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
-        )}
       </div>
 
-      {/* Filtro 5: Titular (Laboratorio) */}
-      <div className="relative">
-        <Label>Titular (Laboratorio) *</Label>
+      {/* Paso 7: Titular */}
+      <div>
+        <Label htmlFor="titular">Titular/Laboratorio *</Label>
         <select
+          id="titular"
           value={titular}
           onChange={(e) => setTitular(e.target.value)}
-          disabled={!unidadreferencia || loadingTitular}
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!formafarmaceutica || loadingTitular || opcionesTitular.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         >
-          <option value="">Seleccione titular</option>
-          {opcionesTitular.map((opcion, index) => (
-            <option key={index} value={opcion}>{opcion}</option>
+          <option value="">
+            {!formafarmaceutica
+              ? "Primero seleccione la forma farmacéutica"
+              : loadingTitular
+                ? "Cargando..."
+                : opcionesTitular.length === 0
+                  ? "No hay titulares disponibles"
+                  : "Seleccione un titular"}
+          </option>
+          {opcionesTitular.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
           ))}
         </select>
-        {loadingTitular && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
-        )}
       </div>
 
-      {/* Filtro 6: Descripción Comercial */}
-      <div className="relative">
-        <Label>Descripción Comercial *</Label>
+      {/* Paso 8: Descripción Comercial */}
+      <div>
+        <Label htmlFor="descripcioncomercial">Descripción Comercial *</Label>
         <select
+          id="descripcioncomercial"
           value={descripcioncomercial}
           onChange={(e) => setDescripcioncomercial(e.target.value)}
-          disabled={!titular || loadingDescripcion}
-          required
-          className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!titular || loadingDescripcion || opcionesDescripcion.length === 0}
+          className="w-full rounded-lg border border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
         >
-          <option value="">Seleccione descripción</option>
-          {opcionesDescripcion.map((opcion, index) => (
-            <option key={index} value={opcion}>{opcion}</option>
+          <option value="">
+            {!titular
+              ? "Primero seleccione el titular"
+              : loadingDescripcion
+                ? "Cargando..."
+                : opcionesDescripcion.length === 0
+                  ? "No hay descripciones disponibles"
+                  : "Seleccione una descripción"}
+          </option>
+          {opcionesDescripcion.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
           ))}
         </select>
-        {loadingDescripcion && (
-          <div className="absolute right-3 top-10">
-            <div className="w-5 h-5 border-2 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
-          </div>
-        )}
       </div>
 
-      {/* Información de Forma Farmacéutica (se obtiene automáticamente) */}
-      {formafarmaceutica && (
-        <div className="md:col-span-2 lg:col-span-3 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="font-semibold text-green-800 dark:text-green-300">Medicamento identificado</span>
-          </div>
-          <p className="mt-2 text-sm text-green-700 dark:text-green-400">
-            <strong>Forma Farmacéutica:</strong> {formafarmaceutica}
-          </p>
-        </div>
-      )}
+{/* Indicador de medicamento completo */}
+<div className="flex flex-col justify-end w-full">
+
+  {/* Espaciador para alinear con los Labels */}
+  <div className="h-[22px]" />
+
+  {medicamentoCompleto && (
+    <div className="flex items-center gap-3 w-full bg-green-100 px-4 py-3 rounded-md">
+      <svg
+        className="w-6 h-6 text-green-600 flex-shrink-0"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+
+      <span className="text-green-700 font-semibold text-sm">
+        Medicamento encontrado
+      </span>
+    </div>
+  )}
+</div>
+
+
     </div>
   );
 }

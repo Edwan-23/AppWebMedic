@@ -1,14 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the column `medicamento_id` on the `donaciones` table. All the data in the column will be lost.
-  - You are about to drop the column `medicamento_id` on the `publicaciones` table. All the data in the column will be lost.
-  - You are about to drop the column `medicamento_id` on the `solicitudes` table. All the data in the column will be lost.
-  - You are about to drop the `medicamentos` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `medida_medicamento` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `tipo_medicamento` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- DropForeignKey
 ALTER TABLE "donaciones" DROP CONSTRAINT "donaciones_medicamento_fk";
 

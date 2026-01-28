@@ -482,7 +482,7 @@ export default function ListaDonaciones() {
                       setFormData(prev => ({
                         ...prev,
                         principioactivo: medicamento.principioactivo,
-                        cantidadcum: medicamento.cantidadcum,
+                        cantidad: medicamento.cantidad,
                         unidadmedida: medicamento.unidadmedida,
                         formafarmaceutica: medicamento.formafarmaceutica,
                         titular: medicamento.titular,

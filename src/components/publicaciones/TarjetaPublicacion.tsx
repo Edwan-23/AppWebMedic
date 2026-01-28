@@ -92,7 +92,7 @@ export default function TarjetaPublicacion({
               {/* Nombre del medicamento + Cantidad */}
               <div className="flex-1 min-w-0">
                 <h3 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
-                  {pub.principioactivo} - {pub.cantidadcum} {pub.unidadmedida}
+                  {pub.principioactivo} - {pub.cantidad_medicamento} {pub.unidadmedida}
                 </h3>
               </div>
             </div>
@@ -180,10 +180,16 @@ export default function TarjetaPublicacion({
                       <p className="text-sm font-medium text-gray-800 dark:text-white">{pub.lote}</p>
                     </div>
                   )}
-                  {pub.cum && (
+                  {pub.expedientecum && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">CUM</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">{pub.cum}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Expediente CUM</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">{pub.expedientecum}</p>
+                    </div>
+                  )}
+                  {pub.consecutivocum && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Consecutivo CUM</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">{pub.consecutivocum}</p>
                     </div>
                   )}
                   {pub.descripcioncomercial && (

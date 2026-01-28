@@ -1,17 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the column `imagen` on the `donaciones` table. All the data in the column will be lost.
-  - Added the required column `cum` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `fecha_expiracion` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `fecha_fabricacion` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_invima` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_lote_vencimiento` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `imagen_principio_activo` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `lote` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `reg_invima` to the `donaciones` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- AlterTable
 ALTER TABLE "donaciones" DROP COLUMN "imagen",
 ADD COLUMN     "cum" VARCHAR(30) NOT NULL,

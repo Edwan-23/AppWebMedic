@@ -1,9 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the column `tipo_envio` on the `solicitudes` table. All the data in the column will be lost.
-
-*/
 -- AlterTable
 ALTER TABLE "solicitudes" DROP COLUMN "tipo_envio",
 ADD COLUMN     "tipo_envio_id" BIGINT;

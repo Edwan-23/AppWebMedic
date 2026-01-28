@@ -113,7 +113,6 @@ export async function GET(request: NextRequest) {
       // Campos manuales
       reg_invima: pub.reg_invima,
       lote: pub.lote,
-      cum: pub.cum,
       fecha_fabricacion: pub.fecha_fabricacion ? new Date(pub.fecha_fabricacion).toISOString() : null,
       fecha_expiracion: pub.fecha_expiracion ? new Date(pub.fecha_expiracion).toISOString() : null,
       
@@ -123,8 +122,10 @@ export async function GET(request: NextRequest) {
       imagen_principio_activo: pub.imagen_principio_activo,
       
       // Campos de la API
+      expedientecum: pub.expedientecum,
+      consecutivocum: pub.consecutivocum,
       principioactivo: pub.principioactivo,
-      cantidadcum: pub.cantidadcum,
+      cantidad_medicamento: pub.cantidad_medicamento,
       unidadmedida: pub.unidadmedida,
       formafarmaceutica: pub.formafarmaceutica,
       titular: pub.titular,
@@ -193,9 +194,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar campos obligatorios
-    if (!body.lote || !body.cum || !body.imagen_invima || !body.imagen_lote_vencimiento || !body.imagen_principio_activo) {
+    if (!body.lote || !body.imagen_invima || !body.imagen_lote_vencimiento || !body.imagen_principio_activo) {
       return NextResponse.json(
-        { error: "Lote, CUM y las 3 imágenes son obligatorias" },
+        { error: "Lote y las 3 imágenes son obligatorias" },
         { status: 400 }
       );
     }
@@ -217,15 +218,12 @@ export async function POST(request: NextRequest) {
     
     const nuevaPublicacion = await (prisma as any).publicaciones.create({
       data: {
-        hospital_id: body.hospital_id ? BigInt(body.hospital_id) : null,
         descripcion: body.descripcion || null,
-        tipo_publicacion_id: body.tipo_publicacion_id ? BigInt(body.tipo_publicacion_id) : null,
         cantidad: body.cantidad,
         
         // Campos manuales obligatorios
         reg_invima: body.reg_invima,
         lote: body.lote,
-        cum: body.cum,
         fecha_fabricacion: fechaFabricacion,
         fecha_expiracion: fechaExpiracion,
         
@@ -234,16 +232,29 @@ export async function POST(request: NextRequest) {
         imagen_lote_vencimiento: body.imagen_lote_vencimiento,
         imagen_principio_activo: body.imagen_principio_activo,
         
-        unidad_dispensacion_id: body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : null,
-        estado_publicacion_id: body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : BigInt(1),
-        
         // Campos de la API de datos.gov.co
+        expedientecum: body.expedientecum || null,
+        consecutivocum: body.consecutivocum || null,
         principioactivo: body.principioactivo || null,
-        cantidadcum: body.cantidadcum || null,
+        cantidad_medicamento: body.cantidad_medicamento || null,
         unidadmedida: body.unidadmedida || null,
         formafarmaceutica: body.formafarmaceutica || null,
         titular: body.titular || null,
-        descripcioncomercial: body.descripcioncomercial || null
+        descripcioncomercial: body.descripcioncomercial || null,
+        
+        // Relaciones usando connect
+        ...(body.hospital_id && {
+          hospitales: { connect: { id: BigInt(body.hospital_id) } }
+        }),
+        ...(body.tipo_publicacion_id && {
+          tipo_publicacion: { connect: { id: BigInt(body.tipo_publicacion_id) } }
+        }),
+        ...(body.unidad_dispensacion_id && {
+          unidad_dispensacion: { connect: { id: BigInt(body.unidad_dispensacion_id) } }
+        }),
+        estado_publicacion: {
+          connect: { id: body.estado_publicacion_id ? BigInt(body.estado_publicacion_id) : BigInt(1) }
+        }
       },
       include: {
         hospitales: true,

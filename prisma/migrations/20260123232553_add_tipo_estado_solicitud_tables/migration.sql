@@ -1,10 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the column `estado_solicitud` on the `solicitudes` table. All the data in the column will be lost.
-  - You are about to drop the column `tipo_solicitud` on the `solicitudes` table. All the data in the column will be lost.
-
-*/
 -- AlterTable
 ALTER TABLE "solicitudes" DROP COLUMN "estado_solicitud",
 DROP COLUMN "tipo_solicitud",

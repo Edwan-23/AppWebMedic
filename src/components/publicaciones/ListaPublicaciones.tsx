@@ -51,7 +51,6 @@ interface Publicacion {
   // Campos manuales obligatorios
   reg_invima: string;
   lote: string;
-  cum: string;
   fecha_fabricacion: string;
   fecha_expiracion: string;
 
@@ -61,8 +60,10 @@ interface Publicacion {
   imagen_principio_activo: string;
 
   // Campos de la API
+  expedientecum?: string;
+  consecutivocum?: string;
   principioactivo?: string;
-  cantidadcum?: string;
+  cantidad_medicamento?: string;
   unidadmedida?: string;
   formafarmaceutica?: string;
   titular?: string;
@@ -130,7 +131,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     // Campos manuales obligatorios
     reg_invima: "",
     lote: "",
-    cum: "",
     fecha_fabricacion: "",
     fecha_expiracion: "",
 
@@ -144,8 +144,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     estado_publicacion_id: "1", // Por defecto "Disponible"
 
     // Campos de la API
+    expedientecum: "",
+    consecutivocum: "",
     principioactivo: "",
-    cantidadcum: "",
+    cantidad_medicamento: "",
     unidadmedida: "",
     formafarmaceutica: "",
     titular: "",
@@ -159,7 +161,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     // Campos manuales obligatorios
     reg_invima: "",
     lote: "",
-    cum: "",
     fecha_fabricacion: "",
     fecha_expiracion: "",
 
@@ -173,8 +174,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     estado_publicacion_id: "",
 
     // Campos de la API
+    expedientecum: "",
+    consecutivocum: "",
     principioactivo: "",
-    cantidadcum: "",
+    cantidad_medicamento: "",
     unidadmedida: "",
     formafarmaceutica: "",
     titular: "",
@@ -412,9 +415,9 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     }
 
     // Validar campos manuales obligatorios
-    if (!formData.reg_invima || !formData.lote || !formData.cum || !formData.fecha_fabricacion) {
+    if (!formData.reg_invima || !formData.lote || !formData.fecha_fabricacion) {
       toast.error("¡Campos requeridos!", {
-        description: "Completa: Registro INVIMA, Lote, CUM y Fecha de Fabricación."
+        description: "Completa: Registro INVIMA, Lote y Fecha de Fabricación."
       });
       return;
     }
@@ -432,18 +435,20 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
     // Calcular automáticamente el tipo de publicación basado en la fecha de expiración
     const tipoCalculado = calcularTipoPublicacion(formData.fecha_expiracion);
 
+    const dataToSend = {
+      ...formData,
+      cantidad: parseInt(formData.cantidad),
+      hospital_id: usuario?.hospital_id,
+      tipo_publicacion_id: tipoCalculado.id, // Usar el tipo calculado automáticamente
+      estado_publicacion_id: parseInt(formData.estado_publicacion_id),
+      unidad_dispensacion_id: formData.unidad_dispensacion_id ? parseInt(formData.unidad_dispensacion_id) : null
+    };
+
     try {
       const response = await fetch("/api/publicaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          cantidad: parseInt(formData.cantidad),
-          hospital_id: usuario?.hospital_id,
-          tipo_publicacion_id: tipoCalculado.id, // Usar el tipo calculado automáticamente
-          estado_publicacion_id: parseInt(formData.estado_publicacion_id),
-          unidad_dispensacion_id: formData.unidad_dispensacion_id ? parseInt(formData.unidad_dispensacion_id) : null
-        })
+        body: JSON.stringify(dataToSend)
       });
 
       if (response.ok) {
@@ -458,7 +463,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           cantidad: "",
           reg_invima: "",
           lote: "",
-          cum: "",
           fecha_fabricacion: "",
           fecha_expiracion: "",
           imagen_invima: null,
@@ -467,8 +471,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
           unidad_dispensacion_id: "",
           tipo_publicacion_id: "",
           estado_publicacion_id: "1",
+          expedientecum: "",
+          consecutivocum: "",
           principioactivo: "",
-          cantidadcum: "",
+          cantidad_medicamento: "",
           unidadmedida: "",
           formafarmaceutica: "",
           titular: "",
@@ -520,7 +526,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       cantidad: publicacion.cantidad?.toString() || "",
       reg_invima: publicacion.reg_invima || "",
       lote: publicacion.lote || "",
-      cum: publicacion.cum || "",
       fecha_fabricacion: publicacion.fecha_fabricacion || "",
       fecha_expiracion: publicacion.fecha_expiracion || "",
       imagen_invima: publicacion.imagen_invima || null,
@@ -529,8 +534,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       unidad_dispensacion_id: publicacion.unidad_dispensacion?.id?.toString() || "",
       tipo_publicacion_id: publicacion.tipo_publicacion?.id?.toString() || "",
       estado_publicacion_id: publicacion.estado_publicacion?.id?.toString() || "",
+      expedientecum: publicacion.expedientecum || "",
+      consecutivocum: publicacion.consecutivocum || "",
       principioactivo: publicacion.principioactivo || "",
-      cantidadcum: publicacion.cantidadcum || "",
+      cantidad_medicamento: publicacion.cantidad_medicamento || "",
       unidadmedida: publicacion.unidadmedida || "",
       formafarmaceutica: publicacion.formafarmaceutica || "",
       titular: publicacion.titular || "",
@@ -547,7 +554,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       cantidad: "",
       reg_invima: "",
       lote: "",
-      cum: "",
       fecha_fabricacion: "",
       fecha_expiracion: "",
       imagen_invima: null,
@@ -556,8 +562,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
       unidad_dispensacion_id: "",
       tipo_publicacion_id: "",
       estado_publicacion_id: "",
+      expedientecum: "",
+      consecutivocum: "",
       principioactivo: "",
-      cantidadcum: "",
+      cantidad_medicamento: "",
       unidadmedida: "",
       formafarmaceutica: "",
       titular: "",
@@ -1098,8 +1106,10 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                     onMedicamentoSeleccionado={(medicamento) => {
                       setFormData(prev => ({
                         ...prev,
+                        expedientecum: medicamento.expedientecum,
+                        consecutivocum: medicamento.consecutivocum,
                         principioactivo: medicamento.principioactivo,
-                        cantidadcum: medicamento.cantidadcum,
+                        cantidad_medicamento: medicamento.cantidad,
                         unidadmedida: medicamento.unidadmedida,
                         formafarmaceutica: medicamento.formafarmaceutica,
                         titular: medicamento.titular,
@@ -1131,19 +1141,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                       value={formData.lote}
                       onChange={handleChange}
                       placeholder="Ej: L202401"
-                      required
-                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>CUM *</Label>
-                    <input
-                      type="text"
-                      name="cum"
-                      value={formData.cum}
-                      onChange={handleChange}
-                      placeholder="Código Único de Medicamento"
                       required
                       className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                     />
@@ -1273,7 +1270,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                     tipo="publicacion"
                   />
                   <ImageUpload
-                    label="Principio Activo *"
+                    label="Cara Principal del producto *"
                     onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_principio_activo: url }))}
                     currentImage={formData.imagen_principio_activo}
                     tipo="publicacion"
@@ -1438,7 +1435,7 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                           {formDataEditar.formafarmaceutica}
                         </span>
                         <span className="px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          {formDataEditar.cantidadcum} {formDataEditar.unidadmedida}
+                          {formDataEditar.cantidad_medicamento} {formDataEditar.unidadmedida}
                         </span>
                       </div>
                     </div>
@@ -1466,19 +1463,6 @@ export default function ListaPublicaciones({ initialData = [] }: ListaPublicacio
                         value={formDataEditar.lote}
                         onChange={handleChangeEditar}
                         placeholder="Ej: L202401"
-                        required
-                        className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      />
-                    </div>
-
-                    <div>
-                      <Label>CUM *</Label>
-                      <input
-                        type="text"
-                        name="cum"
-                        value={formDataEditar.cum}
-                        onChange={handleChangeEditar}
-                        placeholder="Código Único de Medicamento"
                         required
                         className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                       />
