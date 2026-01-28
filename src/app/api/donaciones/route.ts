@@ -1,188 +1,197 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
-import { notificarClientes } from "../notificaciones/stream/route";
 
-// Schema de validación
-const donacionSchema = z.object({
-  medicamento_id: z.number(),
-  hospital_origen_id: z.number(),
-  hospital_destino_id: z.number(),
-  cantidad: z.number().positive(),
-  unidad_dispensacion_id: z.number(),
-  descripcion: z.string().optional(),
-  imagen: z.string().optional()
-});
-
-// GET - Obtener donaciones
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search") || "";
-    const estado = searchParams.get("estado") || "";
-    const tipo = searchParams.get("tipo") || ""; // "enviadas" o "recibidas"
-    const hospitalId = searchParams.get("hospital_id") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-
-    const whereCondition: any = {};
-
-    // Filtro por tipo de donación (enviadas/recibidas)
-    if (tipo && hospitalId) {
-      if (tipo === "enviadas") {
-        // Donaciones donde el hospital es el origen (donante)
-        whereCondition.hospital_origen_id = parseInt(hospitalId);
-      } else if (tipo === "recibidas") {
-        // Donaciones donde el hospital es el destino (receptor)
-        whereCondition.hospital_id = parseInt(hospitalId);
-      }
-    }
-
-    // Filtro por estado
-    if (estado === "pendiente") {
-      whereCondition.envio_id = null;
-    } else if (estado === "proceso") {
-      // En proceso: tiene envío pero NO está entregado
-      whereCondition.envio_id = { not: null };
-      whereCondition.envio = {
-        estado_envio: {
-          estado: { not: "Entregado" }
-        }
-      };
-    } else if (estado === "completada") {
-      whereCondition.envio = {
-        estado_envio: {
-          estado: "Entregado"
-        }
-      };
-    }
-
-    // Búsqueda por medicamento
-    if (search) {
-      whereCondition.medicamentos = {
-        nombre: {
-          contains: search,
-          mode: "insensitive"
-        }
-      };
-    }
-
-    // Calcular paginación
+    const search = searchParams.get("search") || "";
+    const estado = searchParams.get("estado") || "";
+    const hospitalId = searchParams.get("hospital_id") || "";
+    const orderBy = searchParams.get("orderBy") || "created_at";
+    const order = searchParams.get("order") || "desc";
+    
     const skip = (page - 1) * limit;
-    const totalRecords = await prisma.donaciones.count({ where: whereCondition });
-    const totalPages = Math.ceil(totalRecords / limit);
 
-    const donaciones = await prisma.donaciones.findMany({
-      where: whereCondition,
-      skip,
-      take: limit,
-      include: {
-        medicamentos: {
-          select: {
-            id: true,
-            nombre: true,
-            referencia: true
+    // Construir filtros
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { descripcion: { contains: search, mode: 'insensitive' } },
+        { principioactivo: { contains: search, mode: 'insensitive' } },
+        { descripcioncomercial: { contains: search, mode: 'insensitive' } },
+        { titular: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Filtrar por hospital (Mis Donaciones o Recibidas)
+    if (hospitalId) {
+      const tipo = searchParams.get("tipo") || "";
+      
+      if (tipo === "recibidas") {
+        // Donaciones recibidas: donde soy el hospital_origen_id
+        where.hospital_origen_id = BigInt(hospitalId);
+        where.estado_donacion = { nombre: "Concretado" };
+      } else {
+        // Mis donaciones: donde soy el hospital_id (donante)
+        where.hospital_id = BigInt(hospitalId);
+        if (estado) {
+          where.estado_donacion = { nombre: estado };
+        }
+      }
+    } else {
+      // Vista principal: excluir las que están "Solicitado" y "Concretado"
+      if (estado) {
+        where.estado_donacion = { nombre: estado };
+      } else {
+        where.estado_donacion = {
+          nombre: {
+            notIn: ["Solicitado", "Concretado"]
           }
-        },
-        hospitales: {
-          select: {
-            id: true,
-            nombre: true,
-            direccion: true,
-            municipios: {
-              select: {
-                nombre: true
+        };
+      }
+    }
+
+    // Configurar ordenamiento
+    const orderByClause = orderBy === "fecha_expiracion" 
+      ? { fecha_expiracion: order }
+      : { created_at: order };
+
+    // Obtener donaciones con paginación
+    const [donaciones, total] = await Promise.all([
+      (prisma as any).donaciones.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: orderByClause,
+        include: {
+          hospitales: {
+            select: {
+              id: true,
+              nombre: true,
+              direccion: true,
+              celular: true,
+              telefono: true,
+              email: true,
+              municipios: {
+                select: { nombre: true }
               }
             }
-          }
-        },
-        hospital_origen: {
-          select: {
-            id: true,
-            nombre: true,
-            direccion: true,
-            municipios: {
-              select: {
-                nombre: true
+          },
+          hospital_origen: {
+            select: {
+              id: true,
+              nombre: true,
+              direccion: true,
+              celular: true,
+              telefono: true,
+              email: true,
+              municipios: {
+                select: { nombre: true }
               }
             }
-          }
-        },
-        unidad_dispensacion: {
-          select: {
-            id: true,
-            nombre: true
-          }
-        },
-        envio: {
-          select: {
-            id: true,
-            estado_envio: {
-              select: {
-                estado: true
-              }
+          },
+          estado_donacion: {
+            select: {
+              id: true,
+              nombre: true
+            }
+          },
+          tipo_donacion: {
+            select: {
+              id: true,
+              nombre: true
+            }
+          },
+          unidad_dispensacion: {
+            select: {
+              id: true,
+              nombre: true
             }
           }
         }
-      },
-      orderBy: {
-        created_at: "desc"
-      }
-    });
+      }),
+      (prisma as any).donaciones.count({ where })
+    ]);
 
-    // Serializar BigInt a Number
-    const donacionesSerializables = donaciones.map((donacion: any) => ({
-      id: Number(donacion.id),
-      descripcion: donacion.descripcion,
-      cantidad: donacion.cantidad,
-      created_at: donacion.created_at ? donacion.created_at.toISOString() : new Date().toISOString(),
-      updated_at: donacion.updated_at?.toISOString() || null,
-      imagen: donacion.imagen,
-      hospital_id: Number(donacion.hospital_id),
-      hospital_origen_id: donacion.hospital_origen_id ? Number(donacion.hospital_origen_id) : null,
-      medicamento_id: Number(donacion.medicamento_id),
-      envio_id: donacion.envio_id ? Number(donacion.envio_id) : null,
-      unidad_dispensacion_id: donacion.unidad_dispensacion_id ? Number(donacion.unidad_dispensacion_id) : null,
-      medicamentos: donacion.medicamentos ? {
-        id: Number(donacion.medicamentos.id),
-        nombre: donacion.medicamentos.nombre,
-        referencia: donacion.medicamentos.referencia
+    // Convertir BigInt a number y fechas a ISO string
+    const donacionesData = donaciones.map((don: any) => ({
+      id: Number(don.id),
+      hospital_id: don.hospital_id ? Number(don.hospital_id) : null,
+      hospital_origen_id: don.hospital_origen_id ? Number(don.hospital_origen_id) : null,
+      descripcion: don.descripcion,
+      tipo_donacion_id: don.tipo_donacion_id ? Number(don.tipo_donacion_id) : null,
+      cantidad: don.cantidad,
+      unidad_dispensacion_id: don.unidad_dispensacion_id ? Number(don.unidad_dispensacion_id) : null,
+      estado_donacion_id: don.estado_donacion_id ? Number(don.estado_donacion_id) : null,
+      envio_id: don.envio_id ? Number(don.envio_id) : null,
+      created_at: don.created_at ? new Date(don.created_at).toISOString() : null,
+      updated_at: don.updated_at ? new Date(don.updated_at).toISOString() : null,
+      
+      // Campos manuales obligatorios
+      reg_invima: don.reg_invima,
+      lote: don.lote,
+      cum: don.cum,
+      fecha_fabricacion: don.fecha_fabricacion ? new Date(don.fecha_fabricacion).toISOString() : null,
+      fecha_expiracion: don.fecha_expiracion ? new Date(don.fecha_expiracion).toISOString() : null,
+      
+      // Imágenes obligatorias
+      imagen_invima: don.imagen_invima,
+      imagen_lote_vencimiento: don.imagen_lote_vencimiento,
+      imagen_principio_activo: don.imagen_principio_activo,
+      
+      // Campos de la API
+      principioactivo: don.principioactivo,
+      cantidadcum: don.cantidadcum,
+      unidadmedida: don.unidadmedida,
+      formafarmaceutica: don.formafarmaceutica,
+      titular: don.titular,
+      descripcioncomercial: don.descripcioncomercial,
+      
+      hospitales: don.hospitales ? {
+        id: Number(don.hospitales.id),
+        nombre: don.hospitales.nombre,
+        direccion: don.hospitales.direccion,
+        celular: don.hospitales.celular,
+        telefono: don.hospitales.telefono,
+        email: don.hospitales.email,
+        municipios: don.hospitales.municipios
       } : null,
-      hospitales: donacion.hospitales ? {
-        id: Number(donacion.hospitales.id),
-        nombre: donacion.hospitales.nombre,
-        direccion: donacion.hospitales.direccion,
-        municipios: donacion.hospitales.municipios ? {
-          nombre: donacion.hospitales.municipios.nombre
-        } : null
+      hospital_origen: don.hospital_origen ? {
+        id: Number(don.hospital_origen.id),
+        nombre: don.hospital_origen.nombre,
+        direccion: don.hospital_origen.direccion,
+        celular: don.hospital_origen.celular,
+        telefono: don.hospital_origen.telefono,
+        email: don.hospital_origen.email,
+        municipios: don.hospital_origen.municipios
       } : null,
-      hospital_origen: donacion.hospital_origen ? {
-        id: Number(donacion.hospital_origen.id),
-        nombre: donacion.hospital_origen.nombre,
-        direccion: donacion.hospital_origen.direccion,
-        municipios: donacion.hospital_origen.municipios ? {
-          nombre: donacion.hospital_origen.municipios.nombre
-        } : null
+      estado_donacion: don.estado_donacion ? {
+        id: Number(don.estado_donacion.id),
+        nombre: don.estado_donacion.nombre
       } : null,
-      unidad_dispensacion: donacion.unidad_dispensacion ? {
-        id: Number(donacion.unidad_dispensacion.id),
-        nombre: donacion.unidad_dispensacion.nombre
+      tipo_donacion: don.tipo_donacion ? {
+        id: Number(don.tipo_donacion.id),
+        nombre: don.tipo_donacion.nombre
       } : null,
-      envio: donacion.envio ? {
-        id: Number(donacion.envio.id),
-        estado_envio: donacion.envio.estado_envio
+      unidad_dispensacion: don.unidad_dispensacion ? {
+        id: Number(don.unidad_dispensacion.id),
+        nombre: don.unidad_dispensacion.nombre
       } : null
     }));
 
-    return NextResponse.json({ 
-      donaciones: donacionesSerializables,
+    return NextResponse.json({
+      donaciones: donacionesData,
       pagination: {
-        currentPage: page,
-        totalPages,
-        totalRecords,
-        limit
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     });
+
   } catch (error) {
     console.error("Error al obtener donaciones:", error);
     return NextResponse.json(
@@ -192,96 +201,94 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Crear donación
+// POST - Crear nueva donación
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validar datos
-    const validatedData = donacionSchema.parse(body);
+    // Validar campos obligatorios
+    const requiredFields = [
+      'hospital_id', 'cantidad', 'reg_invima', 'lote', 'cum',
+      'fecha_fabricacion', 'fecha_expiracion', 'imagen_invima',
+      'imagen_lote_vencimiento', 'imagen_principio_activo',
+      'principioactivo', 'unidad_dispensacion_id'
+    ];
 
-    // Crear donación
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          { error: `El campo ${field} es requerido` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Obtener estado "Disponible" por defecto
+    const estadoDisponible = await prisma.estado_donacion.findUnique({
+      where: { nombre: "Disponible" }
+    });
+
+    if (!estadoDisponible) {
+      return NextResponse.json(
+        { error: "Estado 'Disponible' no encontrado en la base de datos" },
+        { status: 500 }
+      );
+    }
+
+    // Crear la donación
     const nuevaDonacion = await prisma.donaciones.create({
       data: {
-        medicamento_id: BigInt(validatedData.medicamento_id),
-        hospital_id: BigInt(validatedData.hospital_destino_id),
-        hospital_origen_id: BigInt(validatedData.hospital_origen_id),
-        cantidad: validatedData.cantidad,
-        unidad_dispensacion_id: BigInt(validatedData.unidad_dispensacion_id),
-        descripcion: validatedData.descripcion || null,
-        imagen: validatedData.imagen || null,
-        envio_id: null,
-        created_at: new Date(),
-        updated_at: new Date()
+        hospital_id: BigInt(body.hospital_id),
+        cantidad: body.cantidad,
+        unidad_dispensacion_id: body.unidad_dispensacion_id ? BigInt(body.unidad_dispensacion_id) : null,
+        descripcion: body.descripcion || null,
+        estado_donacion_id: estadoDisponible.id,
+        tipo_donacion_id: body.tipo_donacion_id ? BigInt(body.tipo_donacion_id) : null,
+        
+        // Campos manuales obligatorios
+        reg_invima: body.reg_invima,
+        lote: body.lote,
+        cum: body.cum,
+        fecha_fabricacion: new Date(body.fecha_fabricacion),
+        fecha_expiracion: new Date(body.fecha_expiracion),
+        
+        // Imágenes obligatorias
+        imagen_invima: body.imagen_invima,
+        imagen_lote_vencimiento: body.imagen_lote_vencimiento,
+        imagen_principio_activo: body.imagen_principio_activo,
+        
+        // Campos de la API
+        principioactivo: body.principioactivo,
+        cantidadcum: body.cantidadcum || null,
+        unidadmedida: body.unidadmedida || null,
+        formafarmaceutica: body.formafarmaceutica || null,
+        titular: body.titular || null,
+        descripcioncomercial: body.descripcioncomercial || null
       },
       include: {
-        medicamentos: true,
         hospitales: true,
+        estado_donacion: true,
+        tipo_donacion: true,
         unidad_dispensacion: true
       }
     });
 
-    // Crear notificación para el hospital receptor de la donación
-    try {
-      const medicamento = nuevaDonacion.medicamentos?.nombre || "medicamento";
-      const hospitalOrigen = await prisma.hospitales.findUnique({
-        where: { id: BigInt(validatedData.hospital_origen_id) }
-      });
-
-      const nuevaNotificacion = await prisma.notificaciones.create({
-        data: {
-          titulo: "Nueva donación recibida",
-          mensaje: `${hospitalOrigen?.nombre || "Un hospital"} te ha donado ${validatedData.cantidad} unidades de ${medicamento}`,
-          tipo: "donacion",
-          hospital_id: BigInt(validatedData.hospital_destino_id),
-          referencia_id: nuevaDonacion.id,
-          referencia_tipo: "donacion"
-        }
-      });
-      
-      await notificarClientes(BigInt(validatedData.hospital_destino_id), {
-        id: Number(nuevaNotificacion.id),
-        titulo: nuevaNotificacion.titulo,
-        mensaje: nuevaNotificacion.mensaje,
-        tipo: nuevaNotificacion.tipo,
-        hospital_id: validatedData.hospital_destino_id,
-        usuario_id: null,
-        leida: false,
-        referencia_id: Number(nuevaDonacion.id),
-        referencia_tipo: "donacion",
-        created_at: nuevaNotificacion.created_at
-      });
-    } catch (notifError) {
-      console.error("Error al crear notificación:", notifError);
-    }
-
     return NextResponse.json({
+      success: true,
       message: "Donación creada exitosamente",
       donacion: {
         id: Number(nuevaDonacion.id),
-        medicamento_id: Number(nuevaDonacion.medicamento_id),
         hospital_id: Number(nuevaDonacion.hospital_id),
-        hospital_origen_id: nuevaDonacion.hospital_origen_id ? Number(nuevaDonacion.hospital_origen_id) : null,
         cantidad: nuevaDonacion.cantidad,
-        unidad_dispensacion_id: nuevaDonacion.unidad_dispensacion_id ? Number(nuevaDonacion.unidad_dispensacion_id) : null,
-        descripcion: nuevaDonacion.descripcion,
-        imagen: nuevaDonacion.imagen,
-        created_at: nuevaDonacion.created_at.toISOString(),
-        updated_at: nuevaDonacion.updated_at.toISOString()
+        principioactivo: nuevaDonacion.principioactivo,
+        estado_donacion: nuevaDonacion.estado_donacion?.nombre
       }
     }, { status: 201 });
+
   } catch (error) {
     console.error("Error al crear donación:", error);
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Datos inválidos", details: error.issues },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
-      { error: "Error al crear donación" },
+      { error: "Error al crear la donación" },
       { status: 500 }
     );
   }

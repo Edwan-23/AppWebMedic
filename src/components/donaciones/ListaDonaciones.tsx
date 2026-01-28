@@ -1,118 +1,78 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Image from "next/image";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
-import { Modal } from "@/components/ui/modal";
 import ImageUpload from "@/components/form/ImageUpload";
 import DatePicker from "@/components/form/date-picker";
-
-interface Medicamento {
-  id: number;
-  nombre: string;
-  referencia: string;
-  tipo_medicamento?: { nombre: string };
-  medida_medicamento?: { nombre: string };
-}
-
-interface Hospital {
-  id: number;
-  nombre: string;
-  direccion?: string;
-  municipios?: { nombre: string };
-}
-
-interface UnidadDispensacion {
-  id: number;
-  nombre: string;
-}
-
-interface Envio {
-  id: number;
-  estado_envio?: {
-    estado?: string;
-  };
-}
-
-interface Donacion {
-  id: number;
-  descripcion: string | null;
-  cantidad: number;
-  created_at: string;
-  updated_at: string | null;
-  imagen: string | null;
-  hospital_id: number;
-  hospital_origen_id: number | null;
-  medicamento_id: number;
-  unidad_dispensacion_id: number | null;
-  envio_id: number | null;
-  medicamentos?: Medicamento;
-  hospitales?: Hospital;
-  hospital_origen?: Hospital;
-  unidad_dispensacion?: UnidadDispensacion;
-  envio?: Envio;
-}
+import BuscadorMedicamentos from "@/components/publicaciones/BuscadorMedicamentos";
+import TarjetaDonacion from "@/components/donaciones/TarjetaDonacion";
+import ModalSolicitudDonacion from "@/components/donaciones/ModalSolicitudDonacion";
 
 export default function ListaDonaciones() {
-  const [donaciones, setDonaciones] = useState<Donacion[]>([]);
-  const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
-  const [hospitales, setHospitales] = useState<Hospital[]>([]);
-  const [unidadesDispensacion, setUnidadesDispensacion] = useState<UnidadDispensacion[]>([]);
+  const router = useRouter();
+  const [donaciones, setDonaciones] = useState<any[]>([]);
+  const [tiposDonacion, setTiposDonacion] = useState<any[]>([]);
+  const [estadosDonacion, setEstadosDonacion] = useState<any[]>([]);
+  const [unidadesDispensacion, setUnidadesDispensacion] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarFormularioEnvio, setMostrarFormularioEnvio] = useState(false);
-  const [donacionParaEnvio, setDonacionParaEnvio] = useState<Donacion | null>(null);
-
-  // Estados para búsqueda de medicamentos
-  const [busquedaMedicamento, setBusquedaMedicamento] = useState("");
-  const [mostrarDropdownMedicamentos, setMostrarDropdownMedicamentos] = useState(false);
-  const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState<Medicamento | null>(null);
-
+  
   // Filtros
-  const [filtroEstado, setFiltroEstado] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [tipoDonaciones, setTipoDonaciones] = useState<"enviadas" | "recibidas">("enviadas");
-
-  // Paginación
+  const [estadoFilter, setEstadoFilter] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [vistaActual, setVistaActual] = useState<"todas" | "mias" | "recibidas">("todas");
 
-  // Formulario de donación
+  // Modal solicitud
+  const [donacionASolicitar, setDonacionASolicitar] = useState<any>(null);
+  const [mostrarModalSolicitud, setMostrarModalSolicitud] = useState(false);
+  const [loadingSolicitud, setLoadingSolicitud] = useState(false);
+
+  // Formulario
   const [formData, setFormData] = useState({
-    medicamento_id: "",
-    hospital_destino_id: "",
     descripcion: "",
     cantidad: "",
+    reg_invima: "",
+    lote: "",
+    cum: "",
+    fecha_fabricacion: "",
+    fecha_expiracion: "",
+    imagen_invima: null as string | null,
+    imagen_lote_vencimiento: null as string | null,
+    imagen_principio_activo: null as string | null,
     unidad_dispensacion_id: "",
-    imagen: ""
+    tipo_donacion_id: "",
+    principioactivo: "",
+    cantidadcum: "",
+    unidadmedida: "",
+    formafarmaceutica: "",
+    titular: "",
+    descripcioncomercial: ""
   });
-
-  // Formulario de envío
-  const [formEnvio, setFormEnvio] = useState({
-    transporte_id: "",
-    fecha_recoleccion: "",
-    fecha_entrega_estimada: "",
-    descripcion: ""
-  });
-
-  const [transportes, setTransportes] = useState<any[]>([]);
 
   const cargarDonaciones = useCallback(async () => {
-    if (!usuario?.hospital_id) return;
-
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "10",
-        tipo: tipoDonaciones,
-        hospital_id: usuario.hospital_id.toString(),
         ...(searchTerm && { search: searchTerm }),
-        ...(filtroEstado && { estado: filtroEstado })
+        ...(estadoFilter && { estado: estadoFilter })
       });
+
+      // Determinar tipo según la vista actual
+      if (vistaActual === "mias" && usuario?.hospital_id) {
+        params.append("hospital_id", usuario.hospital_id.toString());
+      } else if (vistaActual === "recibidas" && usuario?.hospital_id) {
+        params.append("hospital_id", usuario.hospital_id.toString());
+        params.append("tipo", "recibidas");
+      }
 
       const response = await fetch(`/api/donaciones?${params}`);
       if (response.ok) {
@@ -128,87 +88,52 @@ export default function ListaDonaciones() {
     } finally {
       setLoading(false);
     }
-  }, [usuario?.hospital_id, page, searchTerm, filtroEstado, tipoDonaciones]);
+  }, [page, searchTerm, estadoFilter, vistaActual, usuario?.hospital_id]);
 
   useEffect(() => {
     const usuarioData = localStorage.getItem("usuario");
     if (usuarioData) {
-      const user = JSON.parse(usuarioData);
-      setUsuario(user);
+      setUsuario(JSON.parse(usuarioData));
     }
     cargarDatosIniciales();
 
-    // Leer parámetro de la URL para establecer el toggle
-    const urlParams = new URLSearchParams(window.location.search);
-    const tipoParam = urlParams.get("tipo");
-    if (tipoParam === "recibidas") {
-      setTipoDonaciones("recibidas");
-    }
-
     // Listener para actualización desde notificaciones
     const handleActualizarDatos = () => {
-      // Si viene de una notificación de donación, establecer toggle en recibidas
-      const urlParams = new URLSearchParams(window.location.search);
-      const tipoParam = urlParams.get("tipo");
-      if (tipoParam === "recibidas") {
-        setTipoDonaciones("recibidas");
-      }
       cargarDonaciones();
     };
-
     window.addEventListener('actualizarDatos', handleActualizarDatos);
-
     return () => {
       window.removeEventListener('actualizarDatos', handleActualizarDatos);
     };
-  }, []);
+  }, [cargarDonaciones]);
 
   useEffect(() => {
     if (usuario) {
       cargarDonaciones();
     }
-  }, [usuario, filtroEstado, searchTerm, tipoDonaciones, page, cargarDonaciones]);
-
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.medicamento-dropdown-container')) {
-        setMostrarDropdownMedicamentos(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [usuario, page, searchTerm, estadoFilter, vistaActual, cargarDonaciones]);
 
   const cargarDatosIniciales = async () => {
     try {
-      const [resMed, resHospitales, resUnidades, resTransportes] = await Promise.all([
-        fetch("/api/medicamentos"),
-        fetch("/api/hospitales"),
-        fetch("/api/unidad-dispensacion"),
-        fetch("/api/transporte")
+      const [resTipo, resEstado, resUnidades] = await Promise.all([
+        fetch("/api/tipo-donacion"),
+        fetch("/api/estado-donacion"),
+        fetch("/api/unidad-dispensacion")
       ]);
 
-      if (resMed.ok) {
-        const data = await resMed.json();
-        setMedicamentos(data.medicamentos || []);
+      if (resTipo.ok) {
+        const dataTipo = await resTipo.json();
+        setTiposDonacion(dataTipo);
       }
 
-      if (resHospitales.ok) {
-        const data = await resHospitales.json();
-        setHospitales(data.hospitales || []);
+      if (resEstado.ok) {
+        const dataEstado = await resEstado.json();
+        setEstadosDonacion(dataEstado);
       }
 
       if (resUnidades.ok) {
-        const data = await resUnidades.json();
-        setUnidadesDispensacion(data.unidades || data);
-      }
-
-      if (resTransportes.ok) {
-        const data = await resTransportes.json();
-        setTransportes(data.transportes || []);
+        const dataUnidades = await resUnidades.json();
+        setUnidadesDispensacion(dataUnidades);
       }
     } catch (error) {
       console.error("Error al cargar datos iniciales:", error);
@@ -220,17 +145,28 @@ export default function ListaDonaciones() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleChangeEnvio = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormEnvio(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.medicamento_id || !formData.hospital_destino_id || !formData.cantidad || !formData.unidad_dispensacion_id) {
+    if (!formData.principioactivo || !formData.cantidad || !formData.fecha_expiracion) {
       toast.error("¡Campos requeridos!", {
-        description: "Completa todos los campos obligatorios."
+        description: "Completa todos los campos obligatorios, incluyendo el medicamento."
+      });
+      return;
+    }
+
+    // Validar campos manuales obligatorios
+    if (!formData.reg_invima || !formData.lote || !formData.cum || !formData.fecha_fabricacion) {
+      toast.error("¡Campos requeridos!", {
+        description: "Completa: Registro INVIMA, Lote, CUM y Fecha de Fabricación."
+      });
+      return;
+    }
+
+    // Validar las 3 imágenes obligatorias
+    if (!formData.imagen_invima || !formData.imagen_lote_vencimiento || !formData.imagen_principio_activo) {
+      toast.error("¡Imágenes requeridas!", {
+        description: "Debes subir las 3 imágenes obligatorias."
       });
       return;
     }
@@ -242,697 +178,601 @@ export default function ListaDonaciones() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          medicamento_id: parseInt(formData.medicamento_id),
-          hospital_origen_id: parseInt(usuario?.hospital_id),
-          hospital_destino_id: parseInt(formData.hospital_destino_id),
+          ...formData,
           cantidad: parseInt(formData.cantidad),
-          unidad_dispensacion_id: parseInt(formData.unidad_dispensacion_id),
-          descripcion: formData.descripcion || undefined,
-          imagen: formData.imagen || undefined
+          hospital_id: usuario?.hospital_id,
+          tipo_donacion_id: formData.tipo_donacion_id ? parseInt(formData.tipo_donacion_id) : null,
+          unidad_dispensacion_id: formData.unidad_dispensacion_id ? parseInt(formData.unidad_dispensacion_id) : null
         })
       });
 
       if (response.ok) {
-        toast.success("¡Donación creada exitosamente!", {
-          description: "La donación ha sido registrada."
+        toast.success("¡Donación creada!", {
+          description: "La donación ha sido publicada correctamente.",
+          id: loadingToast
         });
         setMostrarFormulario(false);
+        cargarDonaciones();
+        // Limpiar formulario
         setFormData({
-          medicamento_id: "",
-          hospital_destino_id: "",
           descripcion: "",
           cantidad: "",
+          reg_invima: "",
+          lote: "",
+          cum: "",
+          fecha_fabricacion: "",
+          fecha_expiracion: "",
+          imagen_invima: null,
+          imagen_lote_vencimiento: null,
+          imagen_principio_activo: null,
           unidad_dispensacion_id: "",
-          imagen: ""
+          tipo_donacion_id: "",
+          principioactivo: "",
+          cantidadcum: "",
+          unidadmedida: "",
+          formafarmaceutica: "",
+          titular: "",
+          descripcioncomercial: ""
         });
-        cargarDonaciones();
       } else {
         const error = await response.json();
         toast.error("Error al crear donación", {
-          description: error.error || "Intenta nuevamente"
+          description: error.error,
+          id: loadingToast
         });
       }
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error al crear donación");
-    } finally {
-      toast.dismiss(loadingToast);
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor.",
+        id: loadingToast
+      });
     }
   };
 
-  const handleSubmitEnvio = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setEstadoFilter("");
+    setPage(1);
+  };
 
-    if (!donacionParaEnvio) return;
+  const handleSolicitar = (donacion: any) => {
+    setDonacionASolicitar(donacion);
+    setMostrarModalSolicitud(true);
+  };
 
-    if (!formEnvio.transporte_id || !formEnvio.fecha_recoleccion || !formEnvio.fecha_entrega_estimada) {
-      toast.error("Completa todos los campos del envío");
+  const confirmarSolicitud = async () => {
+    if (!usuario || !donacionASolicitar) {
+      toast.error("Error", { description: "Usuario no autenticado" });
       return;
     }
 
-    const loadingToast = toast.loading("Creando envío...");
+    if (loadingSolicitud) return;
+    setLoadingSolicitud(true);
+
+    const loadingToast = toast.loading("Enviando solicitud...");
 
     try {
-      const response = await fetch("/api/donaciones/envio", {
+      const response = await fetch(`/api/donaciones/${donacionASolicitar.id}/solicitar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          donacion_id: donacionParaEnvio.id,
-          transporte_id: parseInt(formEnvio.transporte_id),
-          fecha_recoleccion: formEnvio.fecha_recoleccion,
-          fecha_entrega_estimada: formEnvio.fecha_entrega_estimada,
-          descripcion: formEnvio.descripcion,
-          encargado_logistica_id: null // Se puede agregar después
+          hospital_id: usuario.hospital_id
         })
       });
 
-      if (response.ok) {
-        toast.success("¡Envío creado!", {
-          description: "El envío ha sido registrado correctamente."
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error("Error al solicitar donación", {
+          description: data.error || "Intenta nuevamente",
+          id: loadingToast
         });
-        setMostrarFormularioEnvio(false);
-        setDonacionParaEnvio(null);
-        setFormEnvio({
-          transporte_id: "",
-          fecha_recoleccion: "",
-          fecha_entrega_estimada: "",
-          descripcion: ""
-        });
-        cargarDonaciones();
-      } else {
-        const error = await response.json();
-        toast.error("Error al crear envío", {
-          description: error.error
-        });
+        setLoadingSolicitud(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error de conexión");
-    } finally {
-      toast.dismiss(loadingToast);
-    }
-  };
 
-  const abrirFormularioEnvio = (donacion: Donacion) => {
-    setDonacionParaEnvio(donacion);
-    setMostrarFormularioEnvio(true);
+      toast.success("¡Solicitud enviada!", {
+        description: "Tu solicitud ha sido enviada al hospital donante",
+        id: loadingToast
+      });
+
+      setMostrarModalSolicitud(false);
+      setDonacionASolicitar(null);
+      await cargarDonaciones();
+      setLoadingSolicitud(false);
+
+    } catch (error) {
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor",
+        id: loadingToast
+      });
+      setLoadingSolicitud(false);
+    }
   };
 
   const formatearFecha = (fecha: string) => {
     return new Date(fecha).toLocaleDateString("es-CO", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric"
     });
   };
 
-  const getEstadoBadge = (donacion: Donacion) => {
-    if (!donacion.envio_id) {
-      return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">Pendiente</span>;
+  const calcularTiempoRestante = (fechaExpiracion: string) => {
+    const ahora = new Date();
+    const expiracion = new Date(fechaExpiracion);
+    const diferenciaMilisegundos = expiracion.getTime() - ahora.getTime();
+
+    if (diferenciaMilisegundos <= 0) {
+      return {
+        texto: "Expirado",
+        color: "text-red-600 dark:text-red-400",
+        bgColor: "bg-red-50 dark:bg-red-900/20"
+      };
     }
 
-    const estado = donacion.envio?.estado_envio?.estado;
-    if (estado === "Entregado") {
-      return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">Completada</span>;
-    }
+    const diferenciaDias = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
 
-    return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">En proceso</span>;
+    if (diferenciaDias < 90) {
+      const meses = Math.floor(diferenciaDias / 30);
+      const dias = diferenciaDias % 30;
+      let texto = diferenciaDias < 30 ? `${diferenciaDias} días` : `${meses} meses`;
+      if (dias > 0 && diferenciaDias >= 30) texto += ` y ${dias} días`;
+      return {
+        texto,
+        color: "text-red-600 dark:text-red-400",
+        bgColor: "bg-red-50 dark:bg-red-900/20"
+      };
+    } else if (diferenciaDias <= 365) {
+      const meses = Math.floor(diferenciaDias / 30);
+      return {
+        texto: `${meses} meses`,
+        color: "text-orange-600 dark:text-orange-400",
+        bgColor: "bg-orange-50 dark:bg-orange-900/20"
+      };
+    } else {
+      const años = Math.floor(diferenciaDias / 365);
+      const mesesRestantes = Math.floor((diferenciaDias % 365) / 30);
+      let texto = años === 1 ? "1 año" : `${años} años`;
+      if (mesesRestantes > 0) texto += ` y ${mesesRestantes} meses`;
+      return {
+        texto,
+        color: "text-green-600 dark:text-green-400",
+        bgColor: "bg-green-50 dark:bg-green-900/20"
+      };
+    }
   };
 
-  // Ya no necesitamos filtrar en el frontend porque el backend lo hace
-  const donacionesFiltradas = donaciones;
+  const copiarAlPortapapeles = async (texto: string, tipo: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success(`${tipo} copiado`, {
+        description: `${texto} copiado al portapapeles`
+      });
+    } catch (error) {
+      toast.error("Error al copiar");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Toggle para cambiar entre Mis Donaciones y Donaciones Recibidas */}
-      <div className="mb-6 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg w-fit mx-auto">
-        <button
-          onClick={() => {
-            setTipoDonaciones("enviadas");
-            setPage(1);
-          }}
-          className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${tipoDonaciones === "enviadas"
-              ? "bg-white dark:bg-gray-800 text-brand-600 dark:text-brand-400 shadow-md"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-            }`}
-        >
-          <span className="flex items-center gap-2">
-            Mis Donaciones
-          </span>
-        </button>
-        <button
-          onClick={() => {
-            setTipoDonaciones("recibidas");
-            setPage(1);
-          }}
-          className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${tipoDonaciones === "recibidas"
-              ? "bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 shadow-md"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-            }`}
-        >
-          <span className="flex items-center gap-2">
-            Donaciones Recibidas
-          </span>
-        </button>
-      </div>
-
-
-
-      {/* Filtros y búsqueda */}
-      <div className="space-y-3">
-        {/* Filtros de estado y búsqueda */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          {/* Botones de filtro por estado */}
-          <button
-            onClick={() => {
-              setFiltroEstado(filtroEstado === "pendiente" ? "" : "pendiente");
-              setPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroEstado === "pendiente"
-                ? "bg-yellow-500 text-white"
-                : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-          >
-            Pendientes
-          </button>
-
-          <button
-            onClick={() => {
-              setFiltroEstado(filtroEstado === "proceso" ? "" : "proceso");
-              setPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroEstado === "proceso"
-                ? "bg-blue-500 text-white"
-                : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-          >
-            En Proceso
-          </button>
-
-          <button
-            onClick={() => {
-              setFiltroEstado(filtroEstado === "completada" ? "" : "completada");
-              setPage(1);
-            }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtroEstado === "completada"
-                ? "bg-green-500 text-white"
-                : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-          >
-            Completadas
-          </button>
-
-          {/* Botón Nueva Donación - Debajo de Completadas en móvil, al lado en desktop */}
-          <button
-            onClick={() => {
-              setMostrarFormulario(true);
-              setBusquedaMedicamento("");
-              setMedicamentoSeleccionado(null);
-              setMostrarDropdownMedicamentos(false);
-            }}
-            className="sm:hidden w-full px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 focus:ring-4 focus:ring-brand-300 font-medium transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nueva Donación
-          </button>
-
-          <input
-            type="text"
-            placeholder="Buscar medicamento de la donación..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            className="flex-1 min-w-[200px] px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
-          />
-
-          {/* Botón Nueva Donación - Solo desktop */}
-          <button
-            onClick={() => {
-              setMostrarFormulario(true);
-              setBusquedaMedicamento("");
-              setMedicamentoSeleccionado(null);
-              setMostrarDropdownMedicamentos(false);
-            }}
-            className="hidden sm:flex px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 focus:ring-4 focus:ring-brand-300 font-medium transition-colors items-center gap-2 text-sm whitespace-nowrap"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nueva Donación
-          </button>
-        </div>
-      </div>
-      {/* Lista de donaciones */}
-      <div>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">Cargando donaciones...</p>
-          </div>
-        ) : donacionesFiltradas.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+      {/* Barra de búsqueda, filtros y botones */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col flex-1 gap-3 lg:flex-row lg:items-center">
+          {/* Búsqueda */}
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+              placeholder="Buscar donaciones..."
+              className="w-full px-4 py-3 pl-10 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            />
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2"
               fill="none"
-              viewBox="0 0 24 24"
               stroke="currentColor"
+              viewBox="0 0 24 24"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No hay donaciones</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              No se encontraron donaciones.
-            </p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {donacionesFiltradas.map((donacion) => {
-              const esReceptor = Number(donacion.hospital_id) === Number(usuario?.hospital_id);
-              
-              return (
-              <div
-                key={donacion.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex flex-col">
-                  <div className="flex items-start gap-4">
-                    {/* Imagen de la donación (solo para receptor) */}
-                    {esReceptor && donacion.imagen && (
-                      <div className="flex-shrink-0">
-                        <div className="aspect-square w-24 h-24 lg:w-32 lg:h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
-                          <Image
-                            src={donacion.imagen}
-                            alt={donacion.medicamentos?.nombre || "Donación"}
-                            width={128}
-                            height={128}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
 
-                    <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {donacion.medicamentos?.nombre}
-                      </h3>
-                      {getEstadoBadge(donacion)}
-                    </div>
+          {/* Filtro Estado */}
+          <Select
+            value={estadoFilter}
+            onChange={(value) => { setEstadoFilter(value); setPage(1); }}
+            options={[
+              { value: "", label: "Todos los estados" },
+              ...estadosDonacion.map(estado => ({ value: estado.nombre, label: estado.nombre }))
+            ]}
+            placeholder="Todos los estados"
+          />
 
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      Fecha: {new Date(donacion.created_at).toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </div>
+          {/* Botón Limpiar filtros */}
+          {(searchTerm || estadoFilter) && (
+            <button
+              onClick={handleClearFilters}
+              className="px-4 py-3 text-sm text-gray-600 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
 
-                    <div className="space-y-2 text-sm">
-                      {/* Mostrar De: solo en Donaciones Recibidas, Para: solo en Mis Donaciones */}
-                      {tipoDonaciones === "recibidas" && donacion.hospital_origen && (
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7a3 3 0 013-3h8a3 3 0 013 3v14M9 10h.01M15 10h.01M10 21v-6h4v6M12 8v3M10.5 9.5h3" />
-                          </svg>
-                          <span className="font-medium">De:</span>
-                          <span>{donacion.hospital_origen.nombre}</span>
-                        </div>
-                      )}
-                      {tipoDonaciones === "enviadas" && donacion.hospitales && (
-                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7a3 3 0 013-3h8a3 3 0 013 3v14M9 10h.01M15 10h.01M10 21v-6h4v6M12 8v3M10.5 9.5h3" />
-                          </svg>
-                          <span className="font-medium">Para:</span>
-                          <span>{donacion.hospitales.nombre}</span>
-                        </div>
-                      )}
+        {/* Botones de acción */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => setVistaActual("mias")}
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors rounded-lg ${vistaActual === "mias"
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Mis Donaciones
+          </button>
 
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        <span className="font-medium">{donacion.cantidad}</span>
-                        <span>{donacion.unidad_dispensacion?.nombre || "unidades"}</span>
-                      </div>
+          <button
+            onClick={() => setVistaActual("recibidas")}
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors rounded-lg ${vistaActual === "recibidas"
+              ? "bg-purple-500 text-white hover:bg-purple-600"
+              : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            Donaciones Recibidas
+          </button>
 
-                      {donacion.descripcion && (
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">{donacion.descripcion}</p>
-                      )}
+          {vistaActual !== "todas" && (
+            <button
+              onClick={() => setVistaActual("todas")}
+              className="px-4 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            >
+              Ver Todas
+            </button>
+          )}
 
-                      {/* Estado de envío para receptor (solo móvil) */}
-                      {Number(donacion.hospital_id) === Number(usuario?.hospital_id) && !donacion.envio_id && (
-                        <div className="sm:hidden mt-3">
-                          <span className="inline-block px-4 py-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg text-sm font-medium">
-                            Proceso de Envío
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botones para DONANTE */}
-                {Number(donacion.hospital_origen_id) === Number(usuario?.hospital_id) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-                    {!donacion.envio_id ? (
-                      <button
-                        onClick={() => abrirFormularioEnvio(donacion)}
-                        className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium transition-colors"
-                      >
-                        Iniciar Envío
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => window.location.href = `/envios?id=${donacion.envio_id}`}
-                        className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                      >
-                        Seguimiento
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Botones para RECEPTOR */}
-                {Number(donacion.hospital_id) === Number(usuario?.hospital_id) && Number(donacion.hospital_origen_id) !== Number(usuario?.hospital_id) && donacion.envio_id && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-center">
-                    <button
-                      onClick={() => window.location.href = `/envios?id=${donacion.envio_id}`}
-                      className="w-full sm:w-auto sm:px-8 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                    >
-                      Ver Seguimiento
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            );
-            })}
-          </div>
-        )}
+          <button
+            onClick={() => setMostrarFormulario(!mostrarFormulario)}
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition-colors rounded-lg ${mostrarFormulario
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-brand-500 hover:bg-brand-600"
+              }`}
+          >
+            {mostrarFormulario ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            )}
+            {mostrarFormulario ? "Cancelar" : "Nueva Donación"}
+          </button>
+        </div>
       </div>
 
-      {/* Paginación */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 sm:px-6 rounded-lg mt-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="relative inline-flex items-center rounded-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="sr-only">Anterior</span>
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      {/* Formulario de Nueva Donación */}
+      {mostrarFormulario && (
+        <div className="p-6 border border-gray-200 rounded-2xl dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+          <h3 className="mb-6 text-xl font-semibold text-gray-800 dark:text-white">
+            Nueva Donación de Medicamento
+          </h3>
+          <form onSubmit={handleSubmit}>
+            {/* SECCIÓN 1: Datos del medicamento */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Datos del medicamento
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                {/* Buscador de Medicamentos */}
+                <div className="mb-6">
+                  <BuscadorMedicamentos
+                    onMedicamentoSeleccionado={(medicamento) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        principioactivo: medicamento.principioactivo,
+                        cantidadcum: medicamento.cantidadcum,
+                        unidadmedida: medicamento.unidadmedida,
+                        formafarmaceutica: medicamento.formafarmaceutica,
+                        titular: medicamento.titular,
+                        descripcioncomercial: medicamento.descripcioncomercial
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <Label>Registro INVIMA *</Label>
+                    <input
+                      type="text"
+                      name="reg_invima"
+                      value={formData.reg_invima}
+                      onChange={handleChange}
+                      placeholder="Ej: INVIMA2024M-0012345"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Lote *</Label>
+                    <input
+                      type="text"
+                      name="lote"
+                      value={formData.lote}
+                      onChange={handleChange}
+                      placeholder="Ej: L202401"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>CUM *</Label>
+                    <input
+                      type="text"
+                      name="cum"
+                      value={formData.cum}
+                      onChange={handleChange}
+                      placeholder="Código Único de Medicamento"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <DatePicker
+                      id="fecha_fabricacion_crear_donacion"
+                      label="Fecha de Fabricación *"
+                      placeholder="Seleccione una fecha"
+                      defaultDate={formData.fecha_fabricacion || undefined}
+                      maxDate={new Date()}
+                      onChange={(selectedDates) => {
+                        if (selectedDates && selectedDates.length > 0) {
+                          const fecha = selectedDates[0];
+                          const fechaFormateada = fecha.toISOString().split('T')[0];
+                          setFormData(prev => ({ ...prev, fecha_fabricacion: fechaFormateada }));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <DatePicker
+                      id="fecha_expiracion_crear_donacion"
+                      label="Fecha de Expiración *"
+                      placeholder="Seleccione una fecha"
+                      defaultDate={formData.fecha_expiracion || undefined}
+                      minDate={new Date()}
+                      onChange={(selectedDates) => {
+                        if (selectedDates && selectedDates.length > 0) {
+                          const fecha = selectedDates[0];
+                          const fechaFormateada = fecha.toISOString().split('T')[0];
+                          setFormData(prev => ({ ...prev, fecha_expiracion: fechaFormateada }));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Tipo de Donación</Label>
+                    <Select
+                      name="tipo_donacion_id"
+                      value={formData.tipo_donacion_id}
+                      onChange={(value) => setFormData(prev => ({ ...prev, tipo_donacion_id: value }))}
+                      options={tiposDonacion.map(tipo => ({ value: String(tipo.id), label: tipo.nombre }))}
+                      placeholder="Seleccione un tipo"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: Cantidad a donar */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Cantidad a donar
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <div>
+                    <Label>Unidad de dispensación *</Label>
+                    <Select
+                      name="unidad_dispensacion_id"
+                      value={formData.unidad_dispensacion_id}
+                      onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
+                      options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
+                      placeholder="Seleccione una unidad"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Cantidad *</Label>
+                    <input
+                      type="number"
+                      name="cantidad"
+                      value={formData.cantidad}
+                      onChange={handleChange}
+                      min="1"
+                      placeholder="0"
+                      required
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Observación</Label>
+                    <textarea
+                      name="descripcion"
+                      value={formData.descripcion}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Detalles adicionales..."
+                      className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: Imágenes del medicamento */}
+            <div className="mb-8">
+              <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
+                Imágenes del medicamento
+              </h3>
+              <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <ImageUpload
+                    label="Registro INVIMA *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_invima: url }))}
+                    currentImage={formData.imagen_invima}
+                    tipo="donacion"
+                  />
+                  <ImageUpload
+                    label="Lote y Fecha de Vencimiento *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_lote_vencimiento: url }))}
+                    currentImage={formData.imagen_lote_vencimiento}
+                    tipo="donacion"
+                  />
+                  <ImageUpload
+                    label="Principio Activo *"
+                    onImageChange={(url) => setFormData(prev => ({ ...prev, imagen_principio_activo: url }))}
+                    currentImage={formData.imagen_principio_activo}
+                    tipo="donacion"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mensaje informativo */}
+            <div className="flex gap-3 p-4 mt-6 border rounded-lg bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+              <svg
+                className="flex-shrink-0 w-5 h-5 text-blue-600 dark:text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
-                  fillRule="evenodd"
-                  d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
-                  clipRule="evenodd"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-            </button>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              Página <span className="font-medium">{page}</span> de{" "}
-              <span className="font-medium">{totalPages}</span>
-            </p>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="relative inline-flex items-center rounded-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="sr-only">Siguiente</span>
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                <p className="font-semibold">Valide los datos antes de publicar</p>
+                <p className="mt-1">
+                  La información de la donación debe ser precisa y verificable, puesto que se publica en tiempo real.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setMostrarFormulario(false)}
+                className="px-6 py-3 text-sm font-semibold text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-3 text-sm font-semibold text-white transition-colors rounded-lg bg-brand-500 hover:bg-brand-600"
+              >
+                Publicar Donación
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* Modal - Nueva Donación */}
-      <Modal isOpen={mostrarFormulario} onClose={() => {
-        setMostrarFormulario(false);
-        // Resetear estados de búsqueda
-        setBusquedaMedicamento("");
-        setMedicamentoSeleccionado(null);
-        setMostrarDropdownMedicamentos(false);
-      }} className="max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Nueva Donación</h3>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
-            Envíe una donación de medicamentos a otro hospital
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative medicamento-dropdown-container">
-              <Label>Medicamento *</Label>
-              <input
-                type="text"
-                value={medicamentoSeleccionado ? `${medicamentoSeleccionado.nombre} - ${medicamentoSeleccionado.referencia}` : busquedaMedicamento}
-                onChange={(e) => {
-                  setBusquedaMedicamento(e.target.value);
-                  setMostrarDropdownMedicamentos(true);
-                  setMedicamentoSeleccionado(null);
-                  setFormData(prev => ({ ...prev, medicamento_id: "" }));
-                }}
-                onFocus={() => setMostrarDropdownMedicamentos(true)}
-                placeholder="Buscar medicamento..."
-                required
-                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              />
-              {mostrarDropdownMedicamentos && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {medicamentos
-                    .filter(med =>
-                      med.nombre.toLowerCase().includes(busquedaMedicamento.toLowerCase()) ||
-                      med.referencia.toLowerCase().includes(busquedaMedicamento.toLowerCase())
-                    )
-                    .slice(0, 50)
-                    .map(med => (
-                      <button
-                        key={med.id}
-                        type="button"
-                        onClick={() => {
-                          setMedicamentoSeleccionado(med);
-                          setBusquedaMedicamento("");
-                          setFormData(prev => ({ ...prev, medicamento_id: med.id.toString() }));
-                          setMostrarDropdownMedicamentos(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
-                      >
-                        <div className="font-medium">{med.nombre}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Ref: {med.referencia}</div>
-                      </button>
-                    ))}
-                  {medicamentos.filter(med =>
-                    med.nombre.toLowerCase().includes(busquedaMedicamento.toLowerCase()) ||
-                    med.referencia.toLowerCase().includes(busquedaMedicamento.toLowerCase())
-                  ).length === 0 && (
-                      <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                        No se encontraron medicamentos
-                      </div>
-                    )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label>Hospital Destino *</Label>
-              <Select
-                name="hospital_destino_id"
-                value={formData.hospital_destino_id}
-                onChange={(value) => setFormData(prev => ({ ...prev, hospital_destino_id: value }))}
-                options={hospitales.filter(h => h.id !== usuario?.hospital_id).map(hospital => ({ value: String(hospital.id), label: hospital.nombre }))}
-                placeholder="Seleccione un hospital"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Cantidad *</Label>
-                <input
-                  type="number"
-                  name="cantidad"
-                  value={formData.cantidad}
-                  onChange={handleChange}
-                  min="1"
-                  required
-                  className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                />
-              </div>
-
-              <div>
-                <Label>Unidad *</Label>
-                <Select
-                  name="unidad_dispensacion_id"
-                  value={formData.unidad_dispensacion_id}
-                  onChange={(value) => setFormData(prev => ({ ...prev, unidad_dispensacion_id: value }))}
-                  options={unidadesDispensacion.map(unidad => ({ value: String(unidad.id), label: unidad.nombre }))}
-                  placeholder="Seleccione"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Descripción</Label>
-              <textarea
-                name="descripcion"
-                value={formData.descripcion}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                placeholder="Información adicional sobre la donación..."
-              />
-            </div>
-
-            <div>
-              <ImageUpload
-                onImageChange={(url) => setFormData(prev => ({ ...prev, imagen: url || "" }))}
-                currentImage={formData.imagen}
-                label="Imagen de la donación (opcional)"
-                tipo="donacion"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarFormulario(false);
-                  // Resetear búsqueda
-                  setBusquedaMedicamento("");
-                  setMedicamentoSeleccionado(null);
-                  setMostrarDropdownMedicamentos(false);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 focus:ring-4 focus:ring-brand-300 font-medium transition-colors"
-              >
-                Crear Donación
-              </button>
-            </div>
-          </form>
+      {/* Lista de donaciones */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-12 h-12 border-4 rounded-full border-brand-500 border-t-transparent animate-spin"></div>
         </div>
-      </Modal>
-
-      {/* Modal - Iniciar Envío */}
-      <Modal isOpen={mostrarFormularioEnvio} onClose={() => setMostrarFormularioEnvio(false)} className="max-w-[600px]">
-        <div className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Iniciar Envío</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Completa la información del envío para {donacionParaEnvio?.medicamentos?.nombre}
-          </p>
-
-          <form onSubmit={handleSubmitEnvio} className="space-y-4">
-            <div>
-              <Label>Transporte *</Label>
-              <Select
-                name="transporte_id"
-                value={formEnvio.transporte_id}
-                onChange={(value) => setFormEnvio(prev => ({ ...prev, transporte_id: value }))}
-                options={transportes.map(trans => ({ value: String(trans.id), label: trans.nombre }))}
-                placeholder="Seleccione un transporte"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <DatePicker
-                  id="fecha-recoleccion-donacion"
-                  label="Fecha de Recolección *"
-                  defaultDate={formEnvio.fecha_recoleccion || undefined}
-                  onChange={(selectedDates) => {
-                    if (selectedDates.length > 0) {
-                      const date = selectedDates[0];
-                      const year = date.getFullYear();
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
-                      const day = String(date.getDate()).padStart(2, '0');
-                      handleChangeEnvio({
-                        target: {
-                          name: 'fecha_recoleccion',
-                          value: `${year}-${month}-${day}`
-                        }
-                      } as any);
-                    }
-                  }}
-                  placeholder="Seleccionar fecha de recolección"
-                  minDate="today"
-                />
-              </div>
-
-              <div>
-                <DatePicker
-                  id="fecha-entrega-estimada-donacion"
-                  label="Fecha Entrega Estimada *"
-                  defaultDate={formEnvio.fecha_entrega_estimada || undefined}
-                  onChange={(selectedDates) => {
-                    if (selectedDates.length > 0) {
-                      const date = selectedDates[0];
-                      const year = date.getFullYear();
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
-                      const day = String(date.getDate()).padStart(2, '0');
-                      handleChangeEnvio({
-                        target: {
-                          name: 'fecha_entrega_estimada',
-                          value: `${year}-${month}-${day}`
-                        }
-                      } as any);
-                    }
-                  }}
-                  placeholder="Seleccionar fecha de entrega estimada"
-                  minDate={formEnvio.fecha_recoleccion || "today"}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Descripción</Label>
-              <textarea
-                name="descripcion"
-                value={formEnvio.descripcion}
-                onChange={handleChangeEnvio}
-                rows={3}
-                className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                placeholder="Información adicional del envío..."
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setMostrarFormularioEnvio(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 focus:ring-4 focus:ring-brand-300 font-medium transition-colors"
-              >
-                Crear Envío
-              </button>
-            </div>
-          </form>
+      ) : donaciones.length === 0 ? (
+        <div className="py-12 text-center">
+          <svg
+            className="w-16 h-16 mx-auto mb-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+            />
+          </svg>
+          <p className="text-gray-500 dark:text-gray-400">No se encontraron donaciones</p>
         </div>
-      </Modal>
+      ) : (
+        <div className="space-y-4">
+          {donaciones.map((donacion) => (
+            <TarjetaDonacion
+              key={donacion.id}
+              donacion={donacion}
+              usuario={usuario}
+              formatearFecha={formatearFecha}
+              calcularTiempoRestante={calcularTiempoRestante}
+              handleSolicitar={handleSolicitar}
+              copiarAlPortapapeles={copiarAlPortapapeles}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-medium text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Anterior
+          </button>
+          <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+            Página {page} de {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-medium text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      {/* Modal de confirmación de solicitud */}
+      {mostrarModalSolicitud && donacionASolicitar && (
+        <ModalSolicitudDonacion
+          donacion={donacionASolicitar}
+          onClose={() => {
+            setMostrarModalSolicitud(false);
+            setDonacionASolicitar(null);
+            setLoadingSolicitud(false);
+          }}
+          onConfirm={confirmarSolicitud}
+          loading={loadingSolicitud}
+        />
+      )}
     </div>
   );
 }

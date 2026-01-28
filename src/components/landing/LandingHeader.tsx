@@ -34,50 +34,58 @@ export default function LandingHeader() {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/images/logo/auth-logo2 (2).svg"
-              alt="Logo"
-              width={180}
-              height={40}
-              className="h-8 lg:h-20 w-auto"
-            />
-          </Link>
+          {/* Logo - izquierda */}
+          <div className="flex items-center flex-1">
+            <Link href="/" className="flex items-center ml-2">
+              <Image
+                src="/images/logo/auth-logo2 (2).svg"
+                alt="Logo"
+                width={180}
+                height={40}
+                className="h-8 lg:h-20 w-auto"
+              />
+            </Link>
+          </div>
 
-          {/* Navegación escritorio */}
-          <nav className="hidden lg:flex items-center space-x-8">
+          {/* Navegación escritorio - centro */}
+          <nav className="hidden lg:flex items-center justify-center space-x-8 flex-1">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+            >
+              Inicio
+            </button>
             <button
               onClick={() => scrollToSection("nosotros")}
-              className="text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+              className="text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
             >
               Nosotros
             </button>
             <button
               onClick={() => scrollToSection("servicios")}
-              className="text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+              className="text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
             >
               Servicios
             </button>
             <button
               onClick={() => scrollToSection("objetivos")}
-              className="text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+              className="text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
             >
               Objetivos
             </button>
           </nav>
 
-          {/* Botones escritorio */}
-          <div className="hidden lg:flex items-center space-x-4">
+          {/* Botones escritorio - derecha */}
+          <div className="hidden lg:flex items-center justify-end space-x-4 flex-1">
             <Link
               href="/sesion"
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+              className="px-5 py-2.5 text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
             >
               Iniciar sesión
             </Link>
             <Link
               href="/registro"
-              className="px-6 py-2.5 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition shadow-theme-xs"
+              className="px-7 py-3 text-base font-semibold text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition shadow-theme-xs"
             >
               Registrarse
             </Link>
@@ -112,33 +120,42 @@ export default function LandingHeader() {
           <div className="lg:hidden py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
             <nav className="flex flex-col space-y-4">
               <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setIsMobileMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+              >
+                Inicio
+              </button>
+              <button
                 onClick={() => scrollToSection("nosotros")}
-                className="text-left px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+                className="text-left px-4 py-2 text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
               >
                 Nosotros
               </button>
               <button
                 onClick={() => scrollToSection("servicios")}
-                className="text-left px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+                className="text-left px-4 py-2 text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
               >
                 Servicios
               </button>
               <button
                 onClick={() => scrollToSection("objetivos")}
-                className="text-left px-4 py-2 text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
+                className="text-left px-4 py-2 text-base font-semibold text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition"
               >
                 Objetivos
               </button>
               <div className="flex flex-col space-y-2 px-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Link
                   href="/sesion"
-                  className="px-4 py-2.5 text-sm font-medium text-center text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition border border-gray-300 dark:border-gray-700 rounded-lg"
+                  className="px-4 py-2.5 text-base font-semibold text-center text-gray-700 hover:text-brand-500 dark:text-gray-300 dark:hover:text-brand-400 transition border border-gray-300 dark:border-gray-700 rounded-lg"
                 >
                   Iniciar sesión
                 </Link>
                 <Link
                   href="/registro"
-                  className="px-4 py-2.5 text-sm font-medium text-center text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition shadow-theme-xs"
+                  className="px-4 py-2.5 text-base font-semibold text-center text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition shadow-theme-xs"
                 >
                   Registrarse
                 </Link>

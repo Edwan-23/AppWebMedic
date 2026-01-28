@@ -64,6 +64,13 @@ model estado_publicacion {
   publicaciones publicaciones[]
 }
 
+model estado_donacion {
+  id          BigInt       @id @default(autoincrement())
+  nombre      String       @unique @db.VarChar(20)
+  descripcion String?
+  donaciones  donaciones[]
+}
+
 model hospitales {
   id                  BigInt          @id @default(autoincrement())
   rut                 String          @unique @db.VarChar(30)
@@ -230,6 +237,13 @@ model tipo_publicacion {
   publicaciones publicaciones[]
 }
 
+model tipo_donacion {
+  id          BigInt       @id @default(autoincrement())
+  nombre      String       @unique @db.VarChar(20)
+  descripcion String?
+  donaciones  donaciones[]
+}
+
 model transporte {
   id          BigInt  @id @default(autoincrement())
   nombre      String  @unique @db.VarChar(20)
@@ -285,11 +299,22 @@ model donaciones {
   envio_id               BigInt?
   created_at             DateTime             @default(now()) @db.Timestamp(6)
   updated_at             DateTime             @updatedAt @db.Timestamp(6)
-  imagen                 String?
   unidad_dispensacion_id BigInt?
   hospital_origen_id     BigInt?
   
-  // Campos de la API de datos.gov.co (igual que publicaciones)
+  // Campos manuales obligatorios
+  reg_invima             String               @db.VarChar(50)
+  lote                   String               @db.VarChar(50)
+  cum                    String               @db.VarChar(30)
+  fecha_fabricacion      DateTime             @db.Date
+  fecha_expiracion       DateTime             @db.Date
+  
+  // Imágenes obligatorias
+  imagen_invima          String
+  imagen_lote_vencimiento String
+  imagen_principio_activo String
+  
+  // Campos de la API de datos.gov.co
   principioactivo        String?              @db.VarChar(255)
   cantidadcum            String?              @db.VarChar(50)
   unidadmedida           String?              @db.VarChar(50)
@@ -297,10 +322,16 @@ model donaciones {
   titular                String?              @db.VarChar(255)
   descripcioncomercial   String?              @db.VarChar(255)
   
+  // Relaciones con estados y tipos
+  estado_donacion_id     BigInt?
+  tipo_donacion_id       BigInt?
+  
   envio                  envio?               @relation(fields: [envio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donaciones_envio_fk")
   hospitales             hospitales           @relation("donaciones_hospital_destino", fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donaciones_hospital_fk")
   hospital_origen        hospitales?          @relation("donaciones_hospital_origen", fields: [hospital_origen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   unidad_dispensacion    unidad_dispensacion? @relation(fields: [unidad_dispensacion_id], references: [id], onUpdate: NoAction, map: "fk_donaciones_unidad_dispensacion")
+  estado_donacion        estado_donacion?     @relation(fields: [estado_donacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tipo_donacion          tipo_donacion?       @relation(fields: [tipo_donacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model unidad_dispensacion {

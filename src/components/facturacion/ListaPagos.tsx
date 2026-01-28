@@ -174,7 +174,7 @@ export default function ListaPagos() {
         </div>
       </div>
 
-            {/* Toggle para cambiar entre Envíos pagados y Recibidos */}
+            {/* Toggle para cambiar entre Envíos Realizados y Recibidos */}
       <div className="mb-6 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg w-fit mx-auto">
         <button
           onClick={() => setTipoPagos("realizados")}
@@ -185,7 +185,7 @@ export default function ListaPagos() {
           }`}
         >
           <span className="flex items-center gap-2">
-            Envíos pagados
+            Pagos Realizados
           </span>
         </button>
         <button

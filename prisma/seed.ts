@@ -335,7 +335,75 @@ async function seedTipoEnvio() {
     console.log('✅ Tipos de envío creados');
 }
 
-// 5. Estado Publicación
+// 5. Estado Donación
+async function seedEstadoDonacion() {
+    console.log('Creando estado_donacion...');
+
+    await prisma.estado_donacion.upsert({
+        where: { nombre: 'Disponible' },
+        update: {},
+        create: {
+            nombre: 'Disponible',
+            descripcion: 'Donación disponible para solicitudes'
+        }
+    });
+
+    await prisma.estado_donacion.upsert({
+        where: { nombre: 'Solicitado' },
+        update: {},
+        create: {
+            nombre: 'Solicitado',
+            descripcion: 'Donación ha sido solicitada por un hospital'
+        }
+    });
+
+    await prisma.estado_donacion.upsert({
+        where: { nombre: 'Concretado' },
+        update: {},
+        create: {
+            nombre: 'Concretado',
+            descripcion: 'Donación concretada y entregada'
+        }
+    });
+
+    await prisma.estado_donacion.upsert({
+        where: { nombre: 'Cancelado' },
+        update: {},
+        create: {
+            nombre: 'Cancelado',
+            descripcion: 'Donación cancelada'
+        }
+    });
+
+    console.log('✅ Estados de donación creados');
+}
+
+// 6. Tipo Donación
+async function seedTipoDonacion() {
+    console.log('Creando tipo_donacion...');
+
+    await prisma.tipo_donacion.upsert({
+        where: { nombre: 'Donación' },
+        update: {},
+        create: {
+            nombre: 'Donación',
+            descripcion: 'Donación gratuita de medicamentos'
+        }
+    });
+
+    await prisma.tipo_donacion.upsert({
+        where: { nombre: 'Excedente' },
+        update: {},
+        create: {
+            nombre: 'Excedente',
+            descripcion: 'Excedente de inventario disponible'
+        }
+    });
+
+    console.log('✅ Tipos de donación creados');
+}
+
+// 7. Estado Publicación
 async function seedEstadoPublicacion() {
     console.log('Creando estado_publicacion...');
 
@@ -396,7 +464,7 @@ async function seedEstadoPublicacion() {
     console.log('✅ Estados de publicación creados');
 }
 
-// 6. Tipos de Solicitud
+// 8. Tipos de Solicitud
 async function seedTipoSolicitud() {
     console.log('Creando tipo_solicitud...');
 
@@ -430,7 +498,7 @@ async function seedTipoSolicitud() {
     console.log('✅ Tipos de solicitud creados');
 }
 
-// 7. Estados de Solicitud
+// 9. Estados de Solicitud
 async function seedEstadoSolicitud() {
     console.log('Creando estado_solicitud...');
 
@@ -465,7 +533,7 @@ async function seedEstadoSolicitud() {
 }
 
 
-// 8. Medios de Pago
+// 10. Medios de Pago
 async function seedMediosPago() {
     console.log('Creando medios_pago...');
 
@@ -516,7 +584,7 @@ async function seedMediosPago() {
     console.log('✅ Medios de pago creados');
 }
 
-// 9. Municipios (depende de departamentos)
+// 11. Municipios (depende de departamentos)
 async function seedMunicipios() {
     console.log('Creando municipios...');
 
@@ -7377,6 +7445,8 @@ async function main() {
 
         await seedEstadoBase();
         await seedEstadoEnvio();
+        await seedEstadoDonacion();
+        await seedTipoDonacion();
         await seedEstadoPublicacion();
         await seedTipoSolicitud();
         await seedEstadoSolicitud();
